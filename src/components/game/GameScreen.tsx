@@ -46,7 +46,6 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
             <>
               <BingoBoard
                 card={state.bingoCard}
-                calledNumbers={state.calledNumbers}
                 daubedNumbers={state.daubedNumbers}
                 isEliminated={state.isEliminated}
                 onDaub={onDaub}

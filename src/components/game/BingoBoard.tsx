@@ -1,17 +1,14 @@
 import { motion } from 'framer-motion';
-import { BingoCard, BINGO_LETTERS, CalledNumber, getLetterColor } from '@/types/game';
+import { BingoCard, BINGO_LETTERS, getLetterColor } from '@/types/game';
 
 interface BingoBoardProps {
   card: BingoCard;
-  calledNumbers: CalledNumber[];
   daubedNumbers: Set<number>;
   isEliminated: boolean;
   onDaub: (num: number) => void;
 }
 
-export function BingoBoard({ card, calledNumbers, daubedNumbers, isEliminated, onDaub }: BingoBoardProps) {
-  const calledSet = new Set(calledNumbers.map(c => c.number));
-
+export function BingoBoard({ card, daubedNumbers, isEliminated, onDaub }: BingoBoardProps) {
   return (
     <div className={`rounded-xl bg-card p-3 ${isEliminated ? 'opacity-50' : ''}`}>
       <div className="mb-1 text-center text-xs text-muted-foreground">Board #{card.id}</div>
@@ -25,17 +22,14 @@ export function BingoBoard({ card, calledNumbers, daubedNumbers, isEliminated, o
         ))}
       </div>
 
-      {/* Grid */}
+      {/* Grid - NO visual hint for called numbers; player must pay attention */}
       <div className="grid grid-cols-5 gap-1">
         {card.numbers.flatMap((row, r) =>
           row.map((num, c) => {
             const isFree = r === 2 && c === 2;
             const isDaubed = isFree || (num !== null && daubedNumbers.has(num));
-            const isCalled = num !== null && calledSet.has(num);
 
-            let cellClass = 'cell-default';
-            if (isDaubed) cellClass = 'cell-daubed';
-            else if (isCalled) cellClass = 'cell-called';
+            const cellClass = isDaubed ? 'cell-daubed' : 'cell-default';
 
             return (
               <motion.button

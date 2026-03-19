@@ -27,7 +27,8 @@ src/
 ├── context/
 │   └── GameContext.tsx        # React Context provider wrapping useGameState
 ├── hooks/
-│   └── useGameState.ts        # Central state machine: timers, phases, balance, daubing, bingo check
+│   ├── useGameState.ts        # Central state machine: timers, phases, balance, daubing, bingo check
+│   └── useTabSync.ts          # BroadcastChannel-based cross-tab player detection & sync
 ├── lib/
 │   ├── haptic.ts              # Telegram WebApp HapticFeedback helpers (light/medium/heavy)
 │   └── utils.ts               # Tailwind merge utility (cn)
@@ -68,11 +69,27 @@ src/
 - **10% of rounds** are "rigged": a dummy player (from `DUMMY_NAMES` list) wins automatically after ~20 number calls.
 - UI shows "User [Dummy_Name] has won!" — no prize for real players.
 
-### Manual Gameplay
+### Manual Gameplay (No Hints!)
 - **No auto-daub**: Players must click each number manually.
-- **Validation**: Only numbers that have been called can be daubed.
+- **No called-number highlighting**: The board does NOT show which numbers were called — players must pay attention to the caller.
+- **Validation**: Only numbers that have been called can be daubed (server-side verified).
 - **BINGO button disabled** until at least 5 numbers are daubed.
 - **False claim = elimination**: Player's board grays out, they watch as spectator.
+
+### Cross-Tab Player Detection
+- Uses **BroadcastChannel API** to sync player count across browser tabs.
+- Opening the preview in multiple tabs increases the player count in real time.
+- Each tab announces itself with heartbeats; stale tabs are pruned after 5 seconds.
+
+### Security Hardening
+- **CSP (Content Security Policy)**: Strict meta tag blocks inline scripts, foreign origins, and framing.
+- **Input Validation**: All user inputs (name, TxHash, numbers) validated with Zod schemas.
+- **Sanitization**: HTML tags, JS protocol handlers, and event handlers stripped from all text input.
+- **Rate Limiting**: Daubs limited to 10/sec, bingo claims to 2/5sec to prevent spam.
+- **Integrity Check**: Before accepting a bingo claim, verifies all daubed numbers exist in called numbers (prevents DevTools manipulation).
+- **Anti-XSS**: No `dangerouslySetInnerHTML` used anywhere; all text content is escaped by React.
+- **X-Frame-Options**: DENY prevents clickjacking.
+- **Referrer Policy**: strict-origin-when-cross-origin.
 
 ### Bingo Win Patterns
 - Complete row, column, or diagonal

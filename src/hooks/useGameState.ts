@@ -4,6 +4,8 @@ import {
   getLetterForNumber, MIN_BET, DUMMY_WIN_CHANCE, DUMMY_NAMES,
 } from '@/types/game';
 import { hapticImpact, hapticNotification, hapticSelection } from '@/lib/haptic';
+import { sanitizeInput, playerNameSchema, txHashSchema, numberSchema, RateLimiter, validateGameIntegrity } from '@/lib/security';
+import { useTabSync } from './useTabSync';
 
 function generateBingoCard(stackId: number): BingoCard {
   const ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
@@ -67,6 +69,14 @@ export function useGameState() {
     depositStatus: 'idle',
   });
 
+  // Cross-tab player sync
+  const isInGame = state.phase === 'game' && state.playerMode === 'player';
+  const { totalPlayers } = useTabSync(state.user.name, isInGame);
+
+  // Rate limiters for security
+  const daubLimiter = useRef(new RateLimiter(10, 1000)); // max 10 daubs/sec
+  const claimLimiter = useRef(new RateLimiter(2, 5000)); // max 2 claims/5sec
+
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const callRef = useRef<ReturnType<typeof setInterval>>();
   const usedNumbers = useRef<Set<number>>(new Set());
@@ -77,8 +87,14 @@ export function useGameState() {
     setState(s => ({ ...s, phase }));
   }, []);
 
-  // Auth: simulate Telegram contact sharing
-  const authenticate = useCallback((name: string) => {
+  // Auth: validate + sanitize name
+  const authenticate = useCallback((rawName: string) => {
+    const result = playerNameSchema.safeParse(rawName);
+    if (!result.success) {
+      hapticNotification('error');
+      return;
+    }
+    const name = result.data;
     hapticNotification('success');
     setState(s => ({
       ...s,
@@ -87,22 +103,23 @@ export function useGameState() {
     }));
   }, []);
 
-  // Deposit: simulate TxHash verification
-  const submitDeposit = useCallback((txHash: string) => {
+  // Deposit: validate TxHash format
+  const submitDeposit = useCallback((rawHash: string) => {
+    const result = txHashSchema.safeParse(rawHash);
+    if (!result.success) {
+      hapticNotification('error');
+      setState(s => ({ ...s, depositStatus: 'error' }));
+      return;
+    }
+    const txHash = result.data;
     setState(s => ({ ...s, depositTxHash: txHash, depositStatus: 'verifying' }));
-    // Simulate backend verification (2s)
     setTimeout(() => {
       setState(s => {
         if (s.depositStatus !== 'verifying') return s;
-        // 80% chance of valid hash for demo
         const valid = Math.random() > 0.2;
         if (valid) {
           hapticNotification('success');
-          return {
-            ...s,
-            depositStatus: 'success',
-            user: { ...s.user, balance: s.user.balance + 50 },
-          };
+          return { ...s, depositStatus: 'success', user: { ...s.user, balance: s.user.balance + 50 } };
         }
         hapticNotification('error');
         return { ...s, depositStatus: 'error' };
@@ -219,11 +236,15 @@ export function useGameState() {
     return () => clearInterval(callRef.current);
   }, [state.phase === 'game']);
 
-  // Manual daub - only if number was called
+  // Manual daub - validated + rate limited
   const daubNumber = useCallback((num: number) => {
+    const valid = numberSchema.safeParse(num);
+    if (!valid.success) return;
+    if (!daubLimiter.current.canAct()) return;
+
     setState(s => {
       if (s.isEliminated || s.playerMode !== 'player') return s;
-      if (!s.calledNumbers.some(c => c.number === num)) return s; // must be called
+      if (!s.calledNumbers.some(c => c.number === num)) return s;
       hapticSelection();
       const next = new Set(s.daubedNumbers);
       next.add(num);
@@ -247,8 +268,17 @@ export function useGameState() {
     return false;
   }, [state]);
 
-  // Claim bingo
+  // Claim bingo - rate limited + integrity verified
   const claimBingo = useCallback(() => {
+    if (!claimLimiter.current.canAct()) return;
+
+    // Integrity check: all daubed numbers must be in called numbers
+    if (!validateGameIntegrity({ daubedNumbers: state.daubedNumbers, calledNumbers: state.calledNumbers })) {
+      hapticNotification('error');
+      setState(s => ({ ...s, isEliminated: true, playerMode: 'eliminated' }));
+      return;
+    }
+
     if (checkBingo()) {
       clearInterval(callRef.current);
       hapticNotification('success');
@@ -261,10 +291,9 @@ export function useGameState() {
       }));
     } else {
       hapticNotification('error');
-      // Eliminated → becomes spectator-like but stays in game
       setState(s => ({ ...s, isEliminated: true, playerMode: 'eliminated' }));
     }
-  }, [checkBingo, state.stats]);
+  }, [checkBingo, state.stats, state.daubedNumbers, state.calledNumbers]);
 
   const returnToLobby = useCallback(() => {
     setState(s => ({
@@ -282,12 +311,23 @@ export function useGameState() {
     }));
   }, []);
 
-  const daubedCount = state.daubedNumbers.size - 1; // exclude free space marker
+  const daubedCount = state.daubedNumbers.size - 1;
+
+  // Sync cross-tab player count into stats
+  useEffect(() => {
+    setState(s => {
+      const basePlayers = 8; // simulated base players
+      const newCount = basePlayers + totalPlayers;
+      if (s.stats.players === newCount) return s;
+      return { ...s, stats: { ...s.stats, players: newCount } };
+    });
+  }, [totalPlayers]);
 
   return {
     state,
     canAffordBet,
     daubedCount,
+    totalPlayers,
     authenticate,
     submitDeposit,
     resetDeposit,
