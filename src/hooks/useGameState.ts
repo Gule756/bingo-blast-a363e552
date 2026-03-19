@@ -31,12 +31,7 @@ function generateBingoCard(stackId: number): BingoCard {
   return { id: stackId, numbers: grid };
 }
 
-function generateOccupied(): Set<number> {
-  const s = new Set<number>();
-  const count = Math.floor(Math.random() * 30) + 10;
-  while (s.size < count) s.add(Math.floor(Math.random() * 200) + 1);
-  return s;
-}
+// No more fake occupied stacks - only real players from other tabs
 
 const LOBBY_TIME = 30;
 const WARNING_TIME = 5;
