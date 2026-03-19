@@ -27,7 +27,8 @@ src/
 ├── context/
 │   └── GameContext.tsx        # React Context provider wrapping useGameState
 ├── hooks/
-│   └── useGameState.ts        # Central state machine: timers, phases, balance, daubing, bingo check
+│   ├── useGameState.ts        # Central state machine: timers, phases, balance, daubing, bingo check
+│   └── useTabSync.ts          # BroadcastChannel-based cross-tab player detection & sync
 ├── lib/
 │   ├── haptic.ts              # Telegram WebApp HapticFeedback helpers (light/medium/heavy)
 │   └── utils.ts               # Tailwind merge utility (cn)
