@@ -145,7 +145,7 @@ export function useGameState() {
       ...s,
       timer: LOBBY_TIME,
       selectedStack: null,
-      occupiedStacks: generateOccupied(),
+      occupiedStacks: new Set<number>(),
       dummyWinRound: Math.random() < DUMMY_WIN_CHANCE,
     }));
     timerRef.current = setInterval(() => {
