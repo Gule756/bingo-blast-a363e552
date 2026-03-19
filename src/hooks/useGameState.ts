@@ -129,19 +129,35 @@ export function useGameState() {
     setState(s => ({ ...s, depositStatus: 'idle', depositTxHash: '' }));
   }, []);
 
-  // Stack selection
-  const selectStack = useCallback((id: number) => {
+  // Stack selection - returns action info for toast
+  const selectStack = useCallback((id: number): { action: 'selected' | 'unselected' | 'changed'; from?: number; to?: number } | null => {
+    let result: { action: 'selected' | 'unselected' | 'changed'; from?: number; to?: number } | null = null;
     setState(s => {
-      // Check against merged occupied (includes other tabs)
       if (occupiedByOthers.has(id)) {
         hapticImpact('heavy');
         return s;
       }
-      const newStack = s.selectedStack === id ? null : id;
-      broadcastStackSelect(newStack);
-      hapticSelection();
-      return { ...s, selectedStack: newStack };
+      if (s.selectedStack === id) {
+        // Unselect
+        result = { action: 'unselected', from: id };
+        broadcastStackSelect(null);
+        hapticSelection();
+        return { ...s, selectedStack: null };
+      } else if (s.selectedStack !== null) {
+        // Change
+        result = { action: 'changed', from: s.selectedStack, to: id };
+        broadcastStackSelect(id);
+        hapticSelection();
+        return { ...s, selectedStack: id };
+      } else {
+        // Select
+        result = { action: 'selected', to: id };
+        broadcastStackSelect(id);
+        hapticSelection();
+        return { ...s, selectedStack: id };
+      }
     });
+    return result;
   }, [occupiedByOthers, broadcastStackSelect]);
 
   // Lobby timer
