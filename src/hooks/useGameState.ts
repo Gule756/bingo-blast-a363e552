@@ -236,11 +236,15 @@ export function useGameState() {
     return () => clearInterval(callRef.current);
   }, [state.phase === 'game']);
 
-  // Manual daub - only if number was called
+  // Manual daub - validated + rate limited
   const daubNumber = useCallback((num: number) => {
+    const valid = numberSchema.safeParse(num);
+    if (!valid.success) return;
+    if (!daubLimiter.current.canAct()) return;
+
     setState(s => {
       if (s.isEliminated || s.playerMode !== 'player') return s;
-      if (!s.calledNumbers.some(c => c.number === num)) return s; // must be called
+      if (!s.calledNumbers.some(c => c.number === num)) return s;
       hapticSelection();
       const next = new Set(s.daubedNumbers);
       next.add(num);
@@ -264,8 +268,17 @@ export function useGameState() {
     return false;
   }, [state]);
 
-  // Claim bingo
+  // Claim bingo - rate limited + integrity verified
   const claimBingo = useCallback(() => {
+    if (!claimLimiter.current.canAct()) return;
+
+    // Integrity check: all daubed numbers must be in called numbers
+    if (!validateGameIntegrity({ daubedNumbers: state.daubedNumbers, calledNumbers: state.calledNumbers })) {
+      hapticNotification('error');
+      setState(s => ({ ...s, isEliminated: true, playerMode: 'eliminated' }));
+      return;
+    }
+
     if (checkBingo()) {
       clearInterval(callRef.current);
       hapticNotification('success');
@@ -278,10 +291,9 @@ export function useGameState() {
       }));
     } else {
       hapticNotification('error');
-      // Eliminated → becomes spectator-like but stays in game
       setState(s => ({ ...s, isEliminated: true, playerMode: 'eliminated' }));
     }
-  }, [checkBingo, state.stats]);
+  }, [checkBingo, state.stats, state.daubedNumbers, state.calledNumbers]);
 
   const returnToLobby = useCallback(() => {
     setState(s => ({
