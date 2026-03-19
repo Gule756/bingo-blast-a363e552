@@ -69,6 +69,14 @@ export function useGameState() {
     depositStatus: 'idle',
   });
 
+  // Cross-tab player sync
+  const isInGame = state.phase === 'game' && state.playerMode === 'player';
+  const { totalPlayers } = useTabSync(state.user.name, isInGame);
+
+  // Rate limiters for security
+  const daubLimiter = useRef(new RateLimiter(10, 1000)); // max 10 daubs/sec
+  const claimLimiter = useRef(new RateLimiter(2, 5000)); // max 2 claims/5sec
+
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const callRef = useRef<ReturnType<typeof setInterval>>();
   const usedNumbers = useRef<Set<number>>(new Set());
