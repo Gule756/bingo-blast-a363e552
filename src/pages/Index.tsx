@@ -1,26 +1,35 @@
-import { useGameState } from '@/hooks/useGameState';
+import { GameProvider, useGame } from '@/context/GameContext';
 import { WelcomeScreen } from '@/components/game/WelcomeScreen';
+import { DepositScreen } from '@/components/game/DepositScreen';
 import { LobbyScreen } from '@/components/game/LobbyScreen';
 import { WarningOverlay } from '@/components/game/WarningOverlay';
 import { GameScreen } from '@/components/game/GameScreen';
 import { GameOverScreen } from '@/components/game/GameOverScreen';
+import { AnimatePresence } from 'framer-motion';
 
-export default function Index() {
-  const { state, authenticate, selectStack, daubNumber, claimBingo, returnToLobby } = useGameState();
+function GameRouter() {
+  const {
+    state, canAffordBet, daubedCount,
+    authenticate, submitDeposit, resetDeposit,
+    selectStack, daubNumber, claimBingo, returnToLobby, setPhase,
+  } = useGame();
 
   switch (state.phase) {
     case 'welcome':
       return <WelcomeScreen onAuthenticate={authenticate} />;
-    case 'lobby':
+
+    case 'deposit':
       return (
-        <LobbyScreen
-          timer={state.timer}
-          selectedStack={state.selectedStack}
-          occupiedStacks={state.occupiedStacks}
-          stats={state.stats}
-          onSelect={selectStack}
+        <DepositScreen
+          balance={state.user.balance}
+          status={state.depositStatus}
+          onSubmit={submitDeposit}
+          onReset={resetDeposit}
+          onBack={() => setPhase('lobby')}
         />
       );
+
+    case 'lobby':
     case 'warning':
       return (
         <>
@@ -28,21 +37,29 @@ export default function Index() {
             timer={state.timer}
             selectedStack={state.selectedStack}
             occupiedStacks={state.occupiedStacks}
+            user={state.user}
             stats={state.stats}
+            canAffordBet={canAffordBet}
             onSelect={selectStack}
+            onDeposit={() => setPhase('deposit')}
           />
-          <WarningOverlay timer={state.timer} />
+          <AnimatePresence>
+            {state.phase === 'warning' && <WarningOverlay timer={state.timer} />}
+          </AnimatePresence>
         </>
       );
+
     case 'game':
       return (
         <GameScreen
           state={state}
+          daubedCount={daubedCount}
           onDaub={daubNumber}
           onClaim={claimBingo}
           onClose={returnToLobby}
         />
       );
+
     case 'gameover':
       return (
         <GameOverScreen
@@ -50,8 +67,17 @@ export default function Index() {
           card={state.bingoCard}
           daubedNumbers={state.daubedNumbers}
           stats={state.stats}
+          balance={state.user.balance}
           onReturn={returnToLobby}
         />
       );
   }
+}
+
+export default function Index() {
+  return (
+    <GameProvider>
+      <GameRouter />
+    </GameProvider>
+  );
 }

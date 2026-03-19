@@ -1,5 +1,5 @@
-export type GamePhase = 'welcome' | 'lobby' | 'warning' | 'game' | 'gameover';
-export type PlayerMode = 'player' | 'spectator';
+export type GamePhase = 'welcome' | 'deposit' | 'lobby' | 'warning' | 'game' | 'gameover';
+export type PlayerMode = 'player' | 'spectator' | 'eliminated';
 
 export interface BingoCard {
   id: number;
@@ -10,6 +10,13 @@ export interface CalledNumber {
   number: number;
   letter: string;
   timestamp: number;
+}
+
+export interface UserProfile {
+  telegramId: string;
+  name: string;
+  balance: number;
+  totalWins: number;
 }
 
 export interface GameState {
@@ -23,15 +30,24 @@ export interface GameState {
   daubedNumbers: Set<number>;
   isEliminated: boolean;
   winner: string | null;
+  user: UserProfile;
   stats: {
-    derash: number;
     players: number;
     bet: number;
     callCount: number;
   };
+  dummyWinRound: boolean; // house edge: true if this round is rigged
+  depositTxHash: string;
+  depositStatus: 'idle' | 'verifying' | 'success' | 'error';
 }
 
 export const BINGO_LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
+export const MIN_BET = 2;
+export const DUMMY_WIN_CHANCE = 0.10;
+export const DUMMY_NAMES = [
+  'Abebe_K', 'Mulu_T', 'Dawit_G', 'Tigist_M', 'Kebede_H',
+  'Salam_A', 'Yonas_B', 'Hana_D', 'Bereket_F', 'Liya_S',
+];
 
 export function getLetterForNumber(n: number): string {
   if (n <= 15) return 'B';
