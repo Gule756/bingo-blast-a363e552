@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BingoCard, BINGO_LETTERS, CalledNumber, getLetterColor } from '@/types/game';
+import { BingoCard, BINGO_LETTERS, getLetterColor } from '@/types/game';
 
 interface BingoBoardProps {
   card: BingoCard;
