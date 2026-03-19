@@ -36,7 +36,7 @@ function GameRouter() {
           <LobbyScreen
             timer={state.timer}
             selectedStack={state.selectedStack}
-            occupiedStacks={state.occupiedStacks}
+            occupiedStacks={mergedOccupied}
             user={state.user}
             stats={state.stats}
             canAffordBet={canAffordBet}
