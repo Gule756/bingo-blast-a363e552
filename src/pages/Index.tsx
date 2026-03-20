@@ -29,7 +29,7 @@ function GameRouter() {
 
   switch (state.phase) {
     case 'welcome':
-      return <WelcomeScreen onAuthenticate={authenticate} />;
+      return <WelcomeScreen onAuthenticate={(name, phone) => authenticate(name, phone)} />;
 
     case 'deposit':
       return (
