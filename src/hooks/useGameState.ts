@@ -87,19 +87,32 @@ export function useGameState() {
     setState(s => ({ ...s, phase }));
   }, []);
 
-  // Auth: validate + sanitize name
-  const authenticate = useCallback((rawName: string) => {
+  // Auth: validate + sanitize name, save contact to DB
+  const authenticate = useCallback(async (rawName: string, rawPhone: string) => {
     const result = playerNameSchema.safeParse(rawName);
     if (!result.success) {
       hapticNotification('error');
       return;
     }
     const name = result.data;
+    const phone = rawPhone.replace(/[^+0-9]/g, '').slice(0, 15);
+    const telegramId = 'tg_' + Date.now();
+
+    // Save contact to database
+    try {
+      await supabase.from('players').upsert(
+        { telegram_id: telegramId, name, phone },
+        { onConflict: 'telegram_id' }
+      );
+    } catch (e) {
+      console.error('Failed to save player contact:', e);
+    }
+
     hapticNotification('success');
     setState(s => ({
       ...s,
       phase: 'lobby',
-      user: { ...s.user, telegramId: 'tg_' + Date.now(), name },
+      user: { ...s.user, telegramId, name },
     }));
   }, []);
 
