@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  GameState, GamePhase, BingoCard, CalledNumber,
+  GameState, GamePhase, BingoCard, CalledNumber, WinPattern,
   getLetterForNumber, MIN_BET, DUMMY_WIN_CHANCE, DUMMY_NAMES,
 } from '@/types/game';
 import { hapticImpact, hapticNotification, hapticSelection } from '@/lib/haptic';
