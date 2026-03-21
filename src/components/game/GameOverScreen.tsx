@@ -10,6 +10,7 @@ interface GameOverScreenProps {
   daubedNumbers: Set<number>;
   stats: { bet: number; players: number };
   balance: number;
+  currentPlayerName: string;
   onReturn: () => void;
 }
 
@@ -17,11 +18,12 @@ function isWinningCell(r: number, c: number, cells: [number, number][]): boolean
   return cells.some(([wr, wc]) => wr === r && wc === c);
 }
 
-export function GameOverScreen({ winner, winPattern, winningCells, card, daubedNumbers, stats, balance, onReturn }: GameOverScreenProps) {
+export function GameOverScreen({ winner, winPattern, winningCells, card, daubedNumbers, stats, balance, currentPlayerName, onReturn }: GameOverScreenProps) {
   const [countdown, setCountdown] = useState(10);
   const prize = stats.bet * stats.players * 0.9;
   const isDummy = winner ? DUMMY_NAMES.includes(winner) : false;
-  const isRealWinner = winner && !isDummy;
+  const isMe = winner !== null && !isDummy && winner === currentPlayerName;
+  const someoneElseWon = winner !== null && !isMe;
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -36,25 +38,29 @@ export function GameOverScreen({ winner, winPattern, winningCells, card, daubedN
   return (
     <div className="flex min-h-screen flex-col items-center bg-gradient-to-b from-background to-card p-4">
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-2 text-6xl">
-        {winner ? '🏆' : '😔'}
+        {isMe ? '🎉' : winner ? '😔' : '😔'}
       </motion.div>
-      <h1 className="mb-1 text-3xl font-black text-foreground">Game Over!</h1>
 
-      {winner && (
+      {isMe ? (
         <>
-          <p className="mb-1 text-lg font-bold text-accent">
+          <h1 className="mb-1 text-3xl font-black text-accent">You Won!</h1>
+          <div className="mb-4 rounded-xl border-2 border-accent bg-accent/10 px-6 py-3 text-center">
+            <div className="text-sm text-muted-foreground">Prize Won</div>
+            <div className="text-3xl font-black text-accent">{Math.floor(prize)} ETB</div>
+          </div>
+        </>
+      ) : someoneElseWon ? (
+        <>
+          <h1 className="mb-1 text-3xl font-black text-foreground">Game Over!</h1>
+          <p className="mb-1 text-lg font-bold text-destructive">
             {isDummy ? `User ${winner} has won!` : `${winner} wins!`}
           </p>
-
-          {!isDummy && (
-            <div className="mb-4 rounded-xl border-2 border-accent bg-accent/10 px-6 py-3 text-center">
-              <div className="text-sm text-muted-foreground">Prize Won</div>
-              <div className="text-3xl font-black text-accent">{Math.floor(prize)} ETB</div>
-            </div>
-          )}
-          {isDummy && (
-            <p className="mb-4 text-sm text-muted-foreground">Better luck next round!</p>
-          )}
+          <p className="mb-4 text-sm text-muted-foreground">Better luck next round!</p>
+        </>
+      ) : (
+        <>
+          <h1 className="mb-1 text-3xl font-black text-foreground">Game Over!</h1>
+          <p className="mb-4 text-sm text-muted-foreground">No winner this round.</p>
         </>
       )}
 
@@ -63,14 +69,14 @@ export function GameOverScreen({ winner, winPattern, winningCells, card, daubedN
         <p className="text-2xl font-black text-foreground">{balance} ETB</p>
       </div>
 
-      {card && isRealWinner && (
+      {card && isMe && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="mb-4 w-full max-w-xs rounded-2xl border-4 border-yellow-400 bg-yellow-50/10 p-4"
         >
           <div className="mb-1 flex items-center justify-between px-1">
-            <span className="text-sm font-bold text-foreground">{winner}</span>
+            <span className="text-sm font-bold text-foreground">{currentPlayerName}</span>
             {winPattern && (
               <span className="rounded-full border border-muted bg-card px-3 py-0.5 text-xs font-bold text-muted-foreground">
                 {winPattern}

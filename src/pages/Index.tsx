@@ -83,6 +83,7 @@ function GameRouter() {
           daubedNumbers={state.daubedNumbers}
           stats={state.stats}
           balance={state.user.balance}
+          currentPlayerName={state.user.name}
           onReturn={returnToLobby}
         />
       );
