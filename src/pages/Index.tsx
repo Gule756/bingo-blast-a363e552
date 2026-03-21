@@ -78,6 +78,7 @@ function GameRouter() {
         <GameOverScreen
           winner={state.winner}
           winPattern={state.winPattern}
+          winningCells={state.winningCells}
           card={state.bingoCard}
           daubedNumbers={state.daubedNumbers}
           stats={state.stats}
