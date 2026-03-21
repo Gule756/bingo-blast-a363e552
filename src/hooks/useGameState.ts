@@ -59,6 +59,7 @@ export function useGameState() {
     isEliminated: false,
     winner: null,
     winPattern: null,
+    winningCells: [],
     user: { ...DEFAULT_USER },
     stats: { players: 9, bet: 10, callCount: 0 },
     dummyWinRound: false,
@@ -240,7 +241,7 @@ export function useGameState() {
       setState(s => {
         if (usedNumbers.current.size >= 75) {
           clearInterval(callRef.current);
-          return { ...s, phase: 'gameover', winner: null };
+          return { ...s, phase: 'gameover', winner: null, winningCells: [] };
         }
 
         // House edge: dummy wins at specific call count
@@ -248,7 +249,7 @@ export function useGameState() {
           clearInterval(callRef.current);
           const dummyName = DUMMY_NAMES[Math.floor(Math.random() * DUMMY_NAMES.length)];
           hapticNotification('warning');
-          return { ...s, phase: 'gameover', winner: dummyName };
+          return { ...s, phase: 'gameover', winner: dummyName, winningCells: [] };
         }
 
         let num: number;
@@ -287,26 +288,44 @@ export function useGameState() {
     });
   }, []);
 
-  // Check bingo patterns - returns the winning pattern or null
-  const checkBingo = useCallback((): WinPattern => {
+  // Check bingo patterns - returns the winning pattern and cells or null
+  const checkBingo = useCallback((): { pattern: WinPattern; cells: [number, number][] } => {
     const s = state;
-    if (!s.bingoCard) return null;
+    if (!s.bingoCard) return { pattern: null, cells: [] };
     const grid = s.bingoCard.numbers;
     const isDaubed = (r: number, c: number) =>
       (r === 2 && c === 2) || (grid[r][c] !== null && s.daubedNumbers.has(grid[r][c]!));
 
     // Full House (all cells)
-    if (grid.every((row, r) => row.every((_, c) => isDaubed(r, c)))) return 'Full House';
+    if (grid.every((row, r) => row.every((_, c) => isDaubed(r, c)))) {
+      const cells: [number, number][] = [];
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) cells.push([r, c]);
+      return { pattern: 'Full House', cells };
+    }
     // Rows
-    for (let r = 0; r < 5; r++) if ([0,1,2,3,4].every(c => isDaubed(r, c))) return 'Row';
+    for (let r = 0; r < 5; r++) {
+      if ([0,1,2,3,4].every(c => isDaubed(r, c))) {
+        return { pattern: 'Row', cells: [0,1,2,3,4].map(c => [r, c] as [number, number]) };
+      }
+    }
     // Columns
-    for (let c = 0; c < 5; c++) if ([0,1,2,3,4].every(r => isDaubed(r, c))) return 'Column';
+    for (let c = 0; c < 5; c++) {
+      if ([0,1,2,3,4].every(r => isDaubed(r, c))) {
+        return { pattern: 'Column', cells: [0,1,2,3,4].map(r => [r, c] as [number, number]) };
+      }
+    }
     // Diagonals
-    if ([0,1,2,3,4].every(i => isDaubed(i, i))) return 'Diagonal';
-    if ([0,1,2,3,4].every(i => isDaubed(i, 4-i))) return 'Diagonal';
+    if ([0,1,2,3,4].every(i => isDaubed(i, i))) {
+      return { pattern: 'Diagonal', cells: [0,1,2,3,4].map(i => [i, i] as [number, number]) };
+    }
+    if ([0,1,2,3,4].every(i => isDaubed(i, 4-i))) {
+      return { pattern: 'Diagonal', cells: [0,1,2,3,4].map(i => [i, 4-i] as [number, number]) };
+    }
     // Four Corners
-    if (isDaubed(0,0) && isDaubed(0,4) && isDaubed(4,0) && isDaubed(4,4)) return 'Four Corners';
-    return null;
+    if (isDaubed(0,0) && isDaubed(0,4) && isDaubed(4,0) && isDaubed(4,4)) {
+      return { pattern: 'Four Corners', cells: [[0,0],[0,4],[4,0],[4,4]] };
+    }
+    return { pattern: null, cells: [] };
   }, [state]);
 
   // Claim bingo - rate limited + integrity verified
@@ -320,8 +339,8 @@ export function useGameState() {
       return;
     }
 
-    const pattern = checkBingo();
-    if (pattern) {
+    const result = checkBingo();
+    if (result.pattern) {
       clearInterval(callRef.current);
       hapticNotification('success');
       const prize = state.stats.bet * state.stats.players * 0.9;
@@ -329,7 +348,8 @@ export function useGameState() {
         ...s,
         phase: 'gameover',
         winner: s.user.name || 'You',
-        winPattern: pattern,
+        winPattern: result.pattern,
+        winningCells: result.cells,
         user: { ...s.user, balance: s.user.balance + prize, totalWins: s.user.totalWins + 1 },
       }));
     } else {
@@ -351,6 +371,7 @@ export function useGameState() {
       playerMode: 'spectator',
       winner: null,
       winPattern: null,
+      winningCells: [],
       stats: { ...s.stats, callCount: 0 },
     }));
   }, []);

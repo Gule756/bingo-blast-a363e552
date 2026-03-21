@@ -32,6 +32,7 @@ export interface GameState {
   isEliminated: boolean;
   winner: string | null;
   winPattern: WinPattern;
+  winningCells: [number, number][];
   user: UserProfile;
   stats: {
     players: number;

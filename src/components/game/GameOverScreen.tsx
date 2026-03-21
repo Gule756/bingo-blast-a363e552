@@ -5,6 +5,7 @@ import { BingoCard, BINGO_LETTERS, getLetterColor, DUMMY_NAMES, WinPattern } fro
 interface GameOverScreenProps {
   winner: string | null;
   winPattern: WinPattern;
+  winningCells: [number, number][];
   card: BingoCard | null;
   daubedNumbers: Set<number>;
   stats: { bet: number; players: number };
@@ -12,7 +13,11 @@ interface GameOverScreenProps {
   onReturn: () => void;
 }
 
-export function GameOverScreen({ winner, winPattern, card, daubedNumbers, stats, balance, onReturn }: GameOverScreenProps) {
+function isWinningCell(r: number, c: number, cells: [number, number][]): boolean {
+  return cells.some(([wr, wc]) => wr === r && wc === c);
+}
+
+export function GameOverScreen({ winner, winPattern, winningCells, card, daubedNumbers, stats, balance, onReturn }: GameOverScreenProps) {
   const [countdown, setCountdown] = useState(10);
   const prize = stats.bet * stats.players * 0.9;
   const isDummy = winner ? DUMMY_NAMES.includes(winner) : false;
@@ -41,18 +46,6 @@ export function GameOverScreen({ winner, winPattern, card, daubedNumbers, stats,
             {isDummy ? `User ${winner} has won!` : `${winner} wins!`}
           </p>
 
-          {/* Winning pattern badge - always shown in blue */}
-          {winPattern && isRealWinner && (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="mb-3 rounded-full border-2 border-blue-500 bg-blue-500/15 px-5 py-1.5"
-            >
-              <span className="text-sm font-bold text-blue-500">{winPattern}</span>
-            </motion.div>
-          )}
-
           {!isDummy && (
             <div className="mb-4 rounded-xl border-2 border-accent bg-accent/10 px-6 py-3 text-center">
               <div className="text-sm text-muted-foreground">Prize Won</div>
@@ -74,12 +67,12 @@ export function GameOverScreen({ winner, winPattern, card, daubedNumbers, stats,
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="mb-4 w-full max-w-xs rounded-2xl border-4 border-bingo-g bg-bingo-g/5 p-4"
+          className="mb-4 w-full max-w-xs rounded-2xl border-4 border-yellow-400 bg-yellow-50/10 p-4"
         >
           <div className="mb-1 flex items-center justify-between px-1">
             <span className="text-sm font-bold text-foreground">{winner}</span>
             {winPattern && (
-              <span className="rounded-full bg-blue-500/15 px-3 py-0.5 text-xs font-bold text-blue-500">
+              <span className="rounded-full border border-muted bg-card px-3 py-0.5 text-xs font-bold text-muted-foreground">
                 {winPattern}
               </span>
             )}
@@ -95,10 +88,23 @@ export function GameOverScreen({ winner, winPattern, card, daubedNumbers, stats,
               row.map((num, c) => {
                 const isFree = r === 2 && c === 2;
                 const isDaubed = isFree || (num !== null && daubedNumbers.has(num));
+                const isWin = isWinningCell(r, c, winningCells);
                 return (
-                  <div key={`${r}-${c}`} className={`flex h-8 items-center justify-center rounded text-xs font-semibold ${isDaubed ? 'cell-daubed' : 'bg-card text-muted-foreground'}`}>
+                  <motion.div
+                    key={`${r}-${c}`}
+                    initial={isWin ? { scale: 1 } : {}}
+                    animate={isWin ? { scale: 1.15, y: -3 } : {}}
+                    transition={isWin ? { repeat: Infinity, repeatType: 'reverse', duration: 1.2 } : {}}
+                    className={`flex h-8 items-center justify-center rounded text-xs font-semibold ${
+                      isWin
+                        ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/40 ring-2 ring-sky-300 z-10'
+                        : isDaubed
+                          ? 'cell-daubed'
+                          : 'bg-card text-muted-foreground'
+                    }`}
+                  >
                     {isFree ? '★' : num}
-                  </div>
+                  </motion.div>
                 );
               })
             )}
