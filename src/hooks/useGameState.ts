@@ -241,7 +241,7 @@ export function useGameState() {
       setState(s => {
         if (usedNumbers.current.size >= 75) {
           clearInterval(callRef.current);
-          return { ...s, phase: 'gameover', winner: null };
+          return { ...s, phase: 'gameover', winner: null, winningCells: [] };
         }
 
         // House edge: dummy wins at specific call count
