@@ -17,7 +17,7 @@ export function useTabSync(playerName: string, isInGame: boolean) {
   const tabId = useRef(`tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
   const [activeTabs, setActiveTabs] = useState<Map<string, { name: string; isPlayer: boolean; lastSeen: number; stackIds: Set<number> }>>(new Map());
   const channelRef = useRef<BroadcastChannel | null>(null);
-  const currentStacksRef = useRef<Set<number>>(new Set());
+  const currentStacksRef = useRef(new Set<number>());
 
   const broadcast = useCallback((msg: Omit<TabMessage, 'tabId' | 'timestamp'>) => {
     try {
@@ -119,8 +119,11 @@ export function useTabSync(playerName: string, isInGame: boolean) {
 
       return () => {
         broadcast({ type: 'LEAVE' });
-        for (const sid of currentStacksRef.current) {
-          broadcast({ type: 'STACK_DESELECT', stackId: sid });
+        const stacks = currentStacksRef.current;
+        if (stacks && stacks instanceof Set) {
+          for (const sid of stacks) {
+            broadcast({ type: 'STACK_DESELECT', stackId: sid });
+          }
         }
         clearInterval(heartbeat);
         channel.close();
