@@ -13,7 +13,8 @@ interface LobbyScreenProps {
   onDeposit: () => void;
 }
 
-export function LobbyScreen({ timer, selectedStacks, occupiedStacks, user, stats, canAffordBet, onSelect, onDeposit }: LobbyScreenProps) {
+export function LobbyScreen({ timer, selectedStacks: rawStacks, occupiedStacks, user, stats, canAffordBet, onSelect, onDeposit }: LobbyScreenProps) {
+  const selectedStacks = rawStacks instanceof Set ? rawStacks : new Set<number>();
   const selectedArr = Array.from(selectedStacks);
   const totalCost = selectedStacks.size * stats.bet;
 
