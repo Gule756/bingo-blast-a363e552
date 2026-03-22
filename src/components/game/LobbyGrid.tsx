@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 
 interface LobbyGridProps {
-  selectedStack: number | null;
+  selectedStacks: Set<number>;
   occupiedStacks: Set<number>;
   onSelect: (id: number) => void;
 }
@@ -23,7 +23,7 @@ const StackCell = memo(({ id, isSelected, isOccupied, onSelect }: {
 });
 StackCell.displayName = 'StackCell';
 
-export function LobbyGrid({ selectedStack, occupiedStacks, onSelect }: LobbyGridProps) {
+export function LobbyGrid({ selectedStacks, occupiedStacks, onSelect }: LobbyGridProps) {
   return (
     <div className="rounded-xl bg-card p-4">
       <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
@@ -43,7 +43,7 @@ export function LobbyGrid({ selectedStack, occupiedStacks, onSelect }: LobbyGrid
           <StackCell
             key={id}
             id={id}
-            isSelected={selectedStack === id}
+            isSelected={selectedStacks.has(id)}
             isOccupied={occupiedStacks.has(id)}
             onSelect={onSelect}
           />

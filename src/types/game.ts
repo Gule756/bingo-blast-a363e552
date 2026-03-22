@@ -24,22 +24,23 @@ export interface GameState {
   phase: GamePhase;
   timer: number;
   playerMode: PlayerMode;
-  selectedStack: number | null;
+  selectedStacks: Set<number>;
   occupiedStacks: Set<number>;
-  bingoCard: BingoCard | null;
+  bingoCards: BingoCard[];
   calledNumbers: CalledNumber[];
   daubedNumbers: Set<number>;
   isEliminated: boolean;
   winner: string | null;
   winPattern: WinPattern;
   winningCells: [number, number][];
+  winningCardId: number | null;
   user: UserProfile;
   stats: {
     players: number;
     bet: number;
     callCount: number;
   };
-  dummyWinRound: boolean; // house edge: true if this round is rigged
+  dummyWinRound: boolean;
   depositTxHash: string;
   depositStatus: 'idle' | 'verifying' | 'success' | 'error';
 }
