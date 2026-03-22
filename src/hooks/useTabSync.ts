@@ -119,8 +119,11 @@ export function useTabSync(playerName: string, isInGame: boolean) {
 
       return () => {
         broadcast({ type: 'LEAVE' });
-        for (const sid of currentStacksRef.current) {
-          broadcast({ type: 'STACK_DESELECT', stackId: sid });
+        const stacks = currentStacksRef.current;
+        if (stacks && stacks instanceof Set) {
+          for (const sid of stacks) {
+            broadcast({ type: 'STACK_DESELECT', stackId: sid });
+          }
         }
         clearInterval(heartbeat);
         channel.close();
