@@ -4,7 +4,7 @@ import {
   getLetterForNumber, MIN_BET, DUMMY_WIN_CHANCE, DUMMY_NAMES,
 } from '@/types/game';
 import { hapticImpact, hapticNotification, hapticSelection } from '@/lib/haptic';
-import { sanitizeInput, playerNameSchema, txHashSchema, numberSchema, RateLimiter, validateGameIntegrity } from '@/lib/security';
+import { playerNameSchema, txHashSchema, numberSchema, RateLimiter, validateGameIntegrity } from '@/lib/security';
 import { useTabSync } from './useTabSync';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,12 +32,10 @@ function generateBingoCard(stackId: number): BingoCard {
   return { id: stackId, numbers: grid };
 }
 
-// Stacks are only occupied by real players from other tabs (via BroadcastChannel)
-
 const LOBBY_TIME = 30;
 const WARNING_TIME = 5;
 const CALL_INTERVAL = 3000;
-const DUMMY_WIN_CALL = 20; // dummy wins after ~20 calls
+const DUMMY_WIN_CALL = 20;
 
 const DEFAULT_USER = {
   telegramId: '',
@@ -51,15 +49,16 @@ export function useGameState() {
     phase: 'welcome',
     timer: LOBBY_TIME,
     playerMode: 'spectator',
-    selectedStack: null,
+    selectedStacks: new Set<number>(),
     occupiedStacks: new Set<number>(),
-    bingoCard: null,
+    bingoCards: [],
     calledNumbers: [],
     daubedNumbers: new Set([0]),
     isEliminated: false,
     winner: null,
     winPattern: null,
     winningCells: [],
+    winningCardId: null,
     user: { ...DEFAULT_USER },
     stats: { players: 9, bet: 10, callCount: 0 },
     dummyWinRound: false,
@@ -71,15 +70,12 @@ export function useGameState() {
   const callRef = useRef<ReturnType<typeof setInterval>>();
   const usedNumbers = useRef<Set<number>>(new Set());
 
-  // Rate limiters for security
   const daubLimiter = useRef(new RateLimiter(10, 1000));
   const claimLimiter = useRef(new RateLimiter(2, 5000));
 
-  // Cross-tab player sync (must be called unconditionally)
   const isInGame = state.phase === 'game' && state.playerMode === 'player';
   const { totalPlayers, occupiedByOthers, broadcastStackSelect } = useTabSync(state.user.name || 'Player', isInGame);
 
-  // Merge local occupiedStacks with cross-tab selections
   const mergedOccupied = new Set([...state.occupiedStacks, ...occupiedByOthers]);
 
   const canAffordBet = state.user.balance >= MIN_BET;
@@ -88,7 +84,6 @@ export function useGameState() {
     setState(s => ({ ...s, phase }));
   }, []);
 
-  // Auth: validate + sanitize name, save contact to DB
   const authenticate = useCallback(async (rawName: string, rawPhone: string) => {
     const result = playerNameSchema.safeParse(rawName);
     if (!result.success) {
@@ -99,7 +94,6 @@ export function useGameState() {
     const phone = rawPhone.replace(/[^+0-9]/g, '').slice(0, 15);
     const telegramId = 'tg_' + Date.now();
 
-    // Save contact to database
     try {
       await supabase.from('players').upsert(
         { telegram_id: telegramId, name, phone },
@@ -117,7 +111,6 @@ export function useGameState() {
     }));
   }, []);
 
-  // Deposit: validate TxHash format
   const submitDeposit = useCallback((rawHash: string) => {
     const result = txHashSchema.safeParse(rawHash);
     if (!result.success) {
@@ -145,33 +138,34 @@ export function useGameState() {
     setState(s => ({ ...s, depositStatus: 'idle', depositTxHash: '' }));
   }, []);
 
-  // Stack selection - returns action info for toast
-  const selectStack = useCallback((id: number): { action: 'selected' | 'unselected' | 'changed'; from?: number; to?: number } | null => {
-    let result: { action: 'selected' | 'unselected' | 'changed'; from?: number; to?: number } | null = null;
+  // Multi-stack selection - returns action info for toast
+  const selectStack = useCallback((id: number): { action: 'selected' | 'unselected'; cardId: number; totalSelected: number } | null => {
+    let result: { action: 'selected' | 'unselected'; cardId: number; totalSelected: number } | null = null;
     setState(s => {
       if (occupiedByOthers.has(id)) {
         hapticImpact('heavy');
         return s;
       }
-      if (s.selectedStack === id) {
+      const next = new Set(s.selectedStacks);
+      if (next.has(id)) {
         // Unselect
-        result = { action: 'unselected', from: id };
-        broadcastStackSelect(null);
+        next.delete(id);
+        result = { action: 'unselected', cardId: id, totalSelected: next.size };
+        broadcastStackSelect(id, false);
         hapticSelection();
-        return { ...s, selectedStack: null };
-      } else if (s.selectedStack !== null) {
-        // Change
-        result = { action: 'changed', from: s.selectedStack, to: id };
-        broadcastStackSelect(id);
-        hapticSelection();
-        return { ...s, selectedStack: id };
       } else {
-        // Select
-        result = { action: 'selected', to: id };
-        broadcastStackSelect(id);
+        // Check if can afford another card
+        const costAfter = next.size + 1;
+        if (s.user.balance < s.stats.bet * costAfter) {
+          hapticImpact('heavy');
+          return s;
+        }
+        next.add(id);
+        result = { action: 'selected', cardId: id, totalSelected: next.size };
+        broadcastStackSelect(id, true);
         hapticSelection();
-        return { ...s, selectedStack: id };
       }
+      return { ...s, selectedStacks: next };
     });
     return result;
   }, [occupiedByOthers, broadcastStackSelect]);
@@ -182,7 +176,7 @@ export function useGameState() {
     setState(s => ({
       ...s,
       timer: LOBBY_TIME,
-      selectedStack: null,
+      selectedStacks: new Set<number>(),
       occupiedStacks: new Set<number>(),
       dummyWinRound: Math.random() < DUMMY_WIN_CHANCE,
     }));
@@ -199,7 +193,7 @@ export function useGameState() {
     return () => clearInterval(timerRef.current);
   }, [state.phase === 'lobby']);
 
-  // Warning timer → game (NON-BLOCKING: users can still select stacks)
+  // Warning timer → game
   useEffect(() => {
     if (state.phase !== 'warning') return;
     timerRef.current = setInterval(() => {
@@ -207,21 +201,27 @@ export function useGameState() {
         const next = s.timer - 1;
         if (next <= 0) {
           clearInterval(timerRef.current);
-          const hasStack = s.selectedStack !== null;
-          const canPlay = hasStack && s.user.balance >= MIN_BET;
+          const hasStacks = s.selectedStacks.size > 0;
+          const totalCost = s.selectedStacks.size * s.stats.bet;
+          const canPlay = hasStacks && s.user.balance >= totalCost;
           const mode = canPlay ? 'player' : 'spectator';
-          const card = canPlay && s.selectedStack ? generateBingoCard(s.selectedStack) : null;
-          const newBalance = canPlay ? s.user.balance - s.stats.bet : s.user.balance;
+          const cards = canPlay
+            ? Array.from(s.selectedStacks).map(id => generateBingoCard(id))
+            : [];
+          const newBalance = canPlay ? s.user.balance - totalCost : s.user.balance;
           return {
             ...s,
             timer: 0,
             phase: 'game',
             playerMode: mode,
-            bingoCard: card,
+            bingoCards: cards,
             calledNumbers: [],
             daubedNumbers: new Set([0]),
             isEliminated: false,
             winner: null,
+            winPattern: null,
+            winningCells: [],
+            winningCardId: null,
             user: { ...s.user, balance: newBalance },
             stats: { ...s.stats, callCount: 0 },
           };
@@ -241,15 +241,14 @@ export function useGameState() {
       setState(s => {
         if (usedNumbers.current.size >= 75) {
           clearInterval(callRef.current);
-          return { ...s, phase: 'gameover', winner: null, winningCells: [] };
+          return { ...s, phase: 'gameover', winner: null, winningCells: [], winningCardId: null };
         }
 
-        // House edge: dummy wins at specific call count
         if (s.dummyWinRound && usedNumbers.current.size === DUMMY_WIN_CALL) {
           clearInterval(callRef.current);
           const dummyName = DUMMY_NAMES[Math.floor(Math.random() * DUMMY_NAMES.length)];
           hapticNotification('warning');
-          return { ...s, phase: 'gameover', winner: dummyName, winningCells: [] };
+          return { ...s, phase: 'gameover', winner: dummyName, winningCells: [], winningCardId: null };
         }
 
         let num: number;
@@ -269,7 +268,7 @@ export function useGameState() {
     return () => clearInterval(callRef.current);
   }, [state.phase === 'game']);
 
-  // Manual daub - toggle (select/unselect) - validated + rate limited
+  // Manual daub toggle
   const daubNumber = useCallback((num: number) => {
     const valid = numberSchema.safeParse(num);
     if (!valid.success) return;
@@ -288,51 +287,53 @@ export function useGameState() {
     });
   }, []);
 
-  // Check bingo patterns - returns the winning pattern and cells or null
-  const checkBingo = useCallback((): { pattern: WinPattern; cells: [number, number][] } => {
+  // Check bingo across ALL cards - returns best result
+  const checkBingo = useCallback((): { pattern: WinPattern; cells: [number, number][]; cardId: number | null } => {
     const s = state;
-    if (!s.bingoCard) return { pattern: null, cells: [] };
-    const grid = s.bingoCard.numbers;
-    const isDaubed = (r: number, c: number) =>
-      (r === 2 && c === 2) || (grid[r][c] !== null && s.daubedNumbers.has(grid[r][c]!));
+    if (s.bingoCards.length === 0) return { pattern: null, cells: [], cardId: null };
 
-    // Full House (all cells)
-    if (grid.every((row, r) => row.every((_, c) => isDaubed(r, c)))) {
-      const cells: [number, number][] = [];
-      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) cells.push([r, c]);
-      return { pattern: 'Full House', cells };
-    }
-    // Rows
-    for (let r = 0; r < 5; r++) {
-      if ([0,1,2,3,4].every(c => isDaubed(r, c))) {
-        return { pattern: 'Row', cells: [0,1,2,3,4].map(c => [r, c] as [number, number]) };
+    for (const card of s.bingoCards) {
+      const grid = card.numbers;
+      const isDaubed = (r: number, c: number) =>
+        (r === 2 && c === 2) || (grid[r][c] !== null && s.daubedNumbers.has(grid[r][c]!));
+
+      // Full House
+      if (grid.every((row, r) => row.every((_, c) => isDaubed(r, c)))) {
+        const cells: [number, number][] = [];
+        for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) cells.push([r, c]);
+        return { pattern: 'Full House', cells, cardId: card.id };
+      }
+      // Rows
+      for (let r = 0; r < 5; r++) {
+        if ([0,1,2,3,4].every(c => isDaubed(r, c))) {
+          return { pattern: 'Row', cells: [0,1,2,3,4].map(c => [r, c] as [number, number]), cardId: card.id };
+        }
+      }
+      // Columns
+      for (let c = 0; c < 5; c++) {
+        if ([0,1,2,3,4].every(r => isDaubed(r, c))) {
+          return { pattern: 'Column', cells: [0,1,2,3,4].map(r => [r, c] as [number, number]), cardId: card.id };
+        }
+      }
+      // Diagonals
+      if ([0,1,2,3,4].every(i => isDaubed(i, i))) {
+        return { pattern: 'Diagonal', cells: [0,1,2,3,4].map(i => [i, i] as [number, number]), cardId: card.id };
+      }
+      if ([0,1,2,3,4].every(i => isDaubed(i, 4-i))) {
+        return { pattern: 'Diagonal', cells: [0,1,2,3,4].map(i => [i, 4-i] as [number, number]), cardId: card.id };
+      }
+      // Four Corners
+      if (isDaubed(0,0) && isDaubed(0,4) && isDaubed(4,0) && isDaubed(4,4)) {
+        return { pattern: 'Four Corners', cells: [[0,0],[0,4],[4,0],[4,4]], cardId: card.id };
       }
     }
-    // Columns
-    for (let c = 0; c < 5; c++) {
-      if ([0,1,2,3,4].every(r => isDaubed(r, c))) {
-        return { pattern: 'Column', cells: [0,1,2,3,4].map(r => [r, c] as [number, number]) };
-      }
-    }
-    // Diagonals
-    if ([0,1,2,3,4].every(i => isDaubed(i, i))) {
-      return { pattern: 'Diagonal', cells: [0,1,2,3,4].map(i => [i, i] as [number, number]) };
-    }
-    if ([0,1,2,3,4].every(i => isDaubed(i, 4-i))) {
-      return { pattern: 'Diagonal', cells: [0,1,2,3,4].map(i => [i, 4-i] as [number, number]) };
-    }
-    // Four Corners
-    if (isDaubed(0,0) && isDaubed(0,4) && isDaubed(4,0) && isDaubed(4,4)) {
-      return { pattern: 'Four Corners', cells: [[0,0],[0,4],[4,0],[4,4]] };
-    }
-    return { pattern: null, cells: [] };
+    return { pattern: null, cells: [], cardId: null };
   }, [state]);
 
-  // Claim bingo - rate limited + integrity verified
+  // Claim bingo
   const claimBingo = useCallback(() => {
     if (!claimLimiter.current.canAct()) return;
 
-    // Integrity check: all daubed numbers must be in called numbers
     if (!validateGameIntegrity({ daubedNumbers: state.daubedNumbers, calledNumbers: state.calledNumbers })) {
       hapticNotification('error');
       setState(s => ({ ...s, isEliminated: true, playerMode: 'eliminated' }));
@@ -350,6 +351,7 @@ export function useGameState() {
         winner: s.user.name || 'You',
         winPattern: result.pattern,
         winningCells: result.cells,
+        winningCardId: result.cardId,
         user: { ...s.user, balance: s.user.balance + prize, totalWins: s.user.totalWins + 1 },
       }));
     } else {
@@ -363,8 +365,8 @@ export function useGameState() {
       ...s,
       phase: 'lobby',
       timer: LOBBY_TIME,
-      selectedStack: null,
-      bingoCard: null,
+      selectedStacks: new Set<number>(),
+      bingoCards: [],
       calledNumbers: [],
       daubedNumbers: new Set([0]),
       isEliminated: false,
@@ -372,14 +374,13 @@ export function useGameState() {
       winner: null,
       winPattern: null,
       winningCells: [],
+      winningCardId: null,
       stats: { ...s.stats, callCount: 0 },
     }));
   }, []);
 
   const daubedCount = state.daubedNumbers.size - 1;
 
-  // Sync cross-tab player count into stats
-  // Sync cross-tab player count (no fake base players anymore)
   useEffect(() => {
     setState(s => {
       if (s.stats.players === totalPlayers) return s;

@@ -19,11 +19,13 @@ function GameRouter() {
     const result = selectStack(id);
     if (!result) return;
     if (result.action === 'selected') {
-      toast({ title: `✅ You selected card ${result.to}` });
+      if (result.totalSelected === 1) {
+        toast({ title: `✅ You selected card ${result.cardId}` });
+      } else {
+        toast({ title: `✅ You chose a ${ordinal(result.totalSelected)} card: ${result.cardId}` });
+      }
     } else if (result.action === 'unselected') {
-      toast({ title: `↩️ You unselected card ${result.from}` });
-    } else if (result.action === 'changed') {
-      toast({ title: `🔄 You changed card from ${result.from} to ${result.to}` });
+      toast({ title: `↩️ You unselected card ${result.cardId}` });
     }
   };
 
@@ -48,7 +50,7 @@ function GameRouter() {
         <>
           <LobbyScreen
             timer={state.timer}
-            selectedStack={state.selectedStack}
+            selectedStacks={state.selectedStacks}
             occupiedStacks={mergedOccupied}
             user={state.user}
             stats={state.stats}
@@ -79,7 +81,8 @@ function GameRouter() {
           winner={state.winner}
           winPattern={state.winPattern}
           winningCells={state.winningCells}
-          card={state.bingoCard}
+          winningCardId={state.winningCardId}
+          cards={state.bingoCards}
           daubedNumbers={state.daubedNumbers}
           stats={state.stats}
           balance={state.user.balance}
@@ -88,6 +91,12 @@ function GameRouter() {
         />
       );
   }
+}
+
+function ordinal(n: number): string {
+  if (n === 2) return '2nd';
+  if (n === 3) return '3rd';
+  return `${n}th`;
 }
 
 export default function Index() {

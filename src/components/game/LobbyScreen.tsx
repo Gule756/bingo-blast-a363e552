@@ -4,7 +4,7 @@ import { MIN_BET } from '@/types/game';
 
 interface LobbyScreenProps {
   timer: number;
-  selectedStack: number | null;
+  selectedStacks: Set<number>;
   occupiedStacks: Set<number>;
   user: { balance: number; name: string };
   stats: { players: number; bet: number; callCount: number };
@@ -13,15 +13,18 @@ interface LobbyScreenProps {
   onDeposit: () => void;
 }
 
-export function LobbyScreen({ timer, selectedStack, occupiedStacks, user, stats, canAffordBet, onSelect, onDeposit }: LobbyScreenProps) {
+export function LobbyScreen({ timer, selectedStacks, occupiedStacks, user, stats, canAffordBet, onSelect, onDeposit }: LobbyScreenProps) {
+  const selectedArr = Array.from(selectedStacks);
+  const totalCost = selectedStacks.size * stats.bet;
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Top bar */}
       <div className="flex items-center gap-1 bg-card p-2">
         {[
-          { label: 'CARD', value: selectedStack ?? '-' },
+          { label: 'CARDS', value: selectedStacks.size > 0 ? `${selectedStacks.size} (${selectedArr.join(',')})` : '-' },
           { label: 'WALLET', value: `${user.balance} ETB` },
-          { label: 'STAKE', value: `${stats.bet} ETB` },
+          { label: 'COST', value: `${totalCost} ETB` },
           { label: 'STARTING', value: `${timer}s`, highlight: timer <= 10 },
         ].map(s => (
           <div key={s.label} className={`stat-card flex-1 ${s.highlight ? 'gradient-danger' : ''}`}>
@@ -48,7 +51,7 @@ export function LobbyScreen({ timer, selectedStack, occupiedStacks, user, stats,
       )}
 
       <div className="flex-1 overflow-y-auto p-2">
-        <LobbyGrid selectedStack={selectedStack} occupiedStacks={occupiedStacks} onSelect={onSelect} />
+        <LobbyGrid selectedStacks={selectedStacks} occupiedStacks={occupiedStacks} onSelect={onSelect} />
       </div>
     </div>
   );

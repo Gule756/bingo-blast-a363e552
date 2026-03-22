@@ -6,7 +6,8 @@ interface GameOverScreenProps {
   winner: string | null;
   winPattern: WinPattern;
   winningCells: [number, number][];
-  card: BingoCard | null;
+  winningCardId: number | null;
+  cards: BingoCard[];
   daubedNumbers: Set<number>;
   stats: { bet: number; players: number };
   balance: number;
@@ -18,12 +19,15 @@ function isWinningCell(r: number, c: number, cells: [number, number][]): boolean
   return cells.some(([wr, wc]) => wr === r && wc === c);
 }
 
-export function GameOverScreen({ winner, winPattern, winningCells, card, daubedNumbers, stats, balance, currentPlayerName, onReturn }: GameOverScreenProps) {
+export function GameOverScreen({ winner, winPattern, winningCells, winningCardId, cards, daubedNumbers, stats, balance, currentPlayerName, onReturn }: GameOverScreenProps) {
   const [countdown, setCountdown] = useState(10);
   const prize = stats.bet * stats.players * 0.9;
   const isDummy = winner ? DUMMY_NAMES.includes(winner) : false;
   const isMe = winner !== null && !isDummy && winner === currentPlayerName;
   const someoneElseWon = winner !== null && !isMe;
+
+  // Find the winning card to display
+  const winningCard = winningCardId !== null ? cards.find(c => c.id === winningCardId) : null;
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -69,7 +73,7 @@ export function GameOverScreen({ winner, winPattern, winningCells, card, daubedN
         <p className="text-2xl font-black text-foreground">{balance} ETB</p>
       </div>
 
-      {card && isMe && (
+      {winningCard && isMe && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -84,13 +88,13 @@ export function GameOverScreen({ winner, winPattern, winningCells, card, daubedN
             )}
           </div>
           <div className="mb-2 rounded bg-card px-3 py-1 text-center text-xs font-bold text-muted-foreground">
-            Board #{card.id}
+            Board #{winningCard.id}
           </div>
           <div className="grid grid-cols-5 gap-1">
             {BINGO_LETTERS.map(l => (
               <div key={l} className={`${getLetterColor(l)} flex h-7 items-center justify-center rounded text-xs font-bold`}>{l}</div>
             ))}
-            {card.numbers.flatMap((row, r) =>
+            {winningCard.numbers.flatMap((row, r) =>
               row.map((num, c) => {
                 const isFree = r === 2 && c === 2;
                 const isDaubed = isFree || (num !== null && daubedNumbers.has(num));
