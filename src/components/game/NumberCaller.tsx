@@ -21,7 +21,7 @@ export function NumberCaller({ calledNumbers }: NumberCallerProps) {
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.5, opacity: 0 }}
-            className="number-badge bg-bingo-o text-primary-foreground"
+            className="number-badge bg-bingo-g text-primary-foreground ring-2 ring-primary-foreground/30"
           >
             {current.letter}-{current.number}
           </motion.span>
@@ -33,7 +33,7 @@ export function NumberCaller({ calledNumbers }: NumberCallerProps) {
           <p className="text-center text-xs text-muted-foreground">Recent Calls</p>
           <div className="flex justify-center gap-2">
             {recent.map(c => (
-              <span key={c.number} className={`number-badge ${getLetterColor(c.letter)}`}>
+              <span key={c.number} className={`number-badge ${getLetterColor(c.letter)} opacity-80`}>
                 {c.letter}-{c.number}
               </span>
             ))}
