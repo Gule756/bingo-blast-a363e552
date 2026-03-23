@@ -14,29 +14,228 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_players: {
+        Row: {
+          eliminated_card_ids: number[] | null
+          game_id: string
+          id: string
+          is_eliminated: boolean | null
+          joined_at: string
+          player_id: string
+          stack_ids: number[]
+        }
+        Insert: {
+          eliminated_card_ids?: number[] | null
+          game_id: string
+          id?: string
+          is_eliminated?: boolean | null
+          joined_at?: string
+          player_id: string
+          stack_ids?: number[]
+        }
+        Update: {
+          eliminated_card_ids?: number[] | null
+          game_id?: string
+          id?: string
+          is_eliminated?: boolean | null
+          joined_at?: string
+          player_id?: string
+          stack_ids?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_results: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          is_winner: boolean | null
+          player_id: string
+          prize_amount: number | null
+          win_pattern: string | null
+          winning_card_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          is_winner?: boolean | null
+          player_id: string
+          prize_amount?: number | null
+          win_pattern?: string | null
+          winning_card_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          is_winner?: boolean | null
+          player_id?: string
+          prize_amount?: number | null
+          win_pattern?: string | null
+          winning_card_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_results_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_results_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          called_numbers: number[] | null
+          countdown_seconds: number
+          countdown_started_at: string | null
+          created_at: string
+          created_by: string | null
+          finished_at: string | null
+          id: string
+          max_players: number | null
+          stake: number
+          started_at: string | null
+          status: string
+          win_pattern: string | null
+          winner_ids: string[] | null
+        }
+        Insert: {
+          called_numbers?: number[] | null
+          countdown_seconds?: number
+          countdown_started_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          finished_at?: string | null
+          id?: string
+          max_players?: number | null
+          stake: number
+          started_at?: string | null
+          status?: string
+          win_pattern?: string | null
+          winner_ids?: string[] | null
+        }
+        Update: {
+          called_numbers?: number[] | null
+          countdown_seconds?: number
+          countdown_started_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          finished_at?: string | null
+          id?: string
+          max_players?: number | null
+          stake?: number
+          started_at?: string | null
+          status?: string
+          win_pattern?: string | null
+          winner_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
+          balance: number
           created_at: string
           id: string
           name: string
           phone: string | null
           telegram_id: string
+          total_wins: number
         }
         Insert: {
+          balance?: number
           created_at?: string
           id?: string
           name: string
           phone?: string | null
           telegram_id: string
+          total_wins?: number
         }
         Update: {
+          balance?: number
           created_at?: string
           id?: string
           name?: string
           phone?: string | null
           telegram_id?: string
+          total_wins?: number
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          chain: string | null
+          created_at: string
+          id: string
+          player_id: string
+          status: string
+          tx_hash: string | null
+          type: string
+          wallet_address: string | null
+        }
+        Insert: {
+          amount: number
+          chain?: string | null
+          created_at?: string
+          id?: string
+          player_id: string
+          status?: string
+          tx_hash?: string | null
+          type: string
+          wallet_address?: string | null
+        }
+        Update: {
+          amount?: number
+          chain?: string | null
+          created_at?: string
+          id?: string
+          player_id?: string
+          status?: string
+          tx_hash?: string | null
+          type?: string
+          wallet_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
