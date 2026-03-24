@@ -71,21 +71,21 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
 
       {/* Two cards layout: sidebar + caller on top, two cards stacked below */}
       {cardCount === 2 && (
-        <div className="flex flex-1 flex-col gap-1 overflow-hidden px-1.5 pb-1.5">
-          {/* Top section: sidebar + caller side by side */}
-          <div className="flex gap-1.5 shrink-0" style={{ maxHeight: '35%' }}>
-            <div className="w-[35%] shrink-0 overflow-hidden">
+        <div className="flex flex-1 flex-col gap-0.5 overflow-hidden px-1 pb-1">
+          {/* Top section: sidebar + caller side by side — kept short */}
+          <div className="flex gap-1 shrink-0" style={{ height: '28%' }}>
+            <div className="w-[32%] shrink-0 overflow-hidden">
               <BoardSidebar calledNumbers={state.calledNumbers} compact />
             </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <NumberCaller calledNumbers={state.calledNumbers} />
+            <div className="flex-1 flex flex-col justify-center">
+              <NumberCaller calledNumbers={state.calledNumbers} compact />
             </div>
           </div>
           {/* Bottom: 2 cards stacked */}
           {state.playerMode === 'spectator' ? (
             <SpectatorCard />
           ) : (
-            <div className="flex flex-1 flex-col gap-1 overflow-hidden">
+            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden min-h-0">
               {state.bingoCards.map(card => {
                 const isCardEliminated = state.eliminatedCardIds.has(card.id);
                 return (
@@ -101,7 +101,7 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
                       <button
                         onClick={() => handleClaim(card.id)}
                         disabled={daubedCount < 5}
-                        className="gradient-winner rounded-lg px-3 py-1 text-xs font-black text-primary-foreground shadow transition-transform active:scale-95 disabled:opacity-40 disabled:scale-100 shrink-0"
+                        className="gradient-winner rounded-lg px-3 py-0.5 text-[10px] font-black text-primary-foreground shadow transition-transform active:scale-95 disabled:opacity-40 disabled:scale-100 shrink-0"
                       >
                         🎯 BINGO #{card.id}
                       </button>
@@ -114,23 +114,23 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
         </div>
       )}
 
-      {/* Three cards layout: sidebar wider+shorter at top, 3 cards side by side at bottom */}
+      {/* Three cards layout: horizontal board + small caller on top, 3 cards side by side at bottom */}
       {cardCount === 3 && (
-        <div className="flex flex-1 flex-col gap-1 overflow-hidden px-1.5 pb-1.5">
-          {/* Top section: wider sidebar + caller */}
-          <div className="flex gap-1.5 shrink-0" style={{ maxHeight: '30%' }}>
-            <div className="w-[40%] shrink-0 overflow-hidden">
-              <BoardSidebar calledNumbers={state.calledNumbers} compact />
+        <div className="flex flex-1 flex-col gap-0.5 overflow-hidden px-1 pb-1">
+          {/* Top section: wide horizontal board + compact caller */}
+          <div className="flex gap-1 shrink-0" style={{ height: '32%' }}>
+            <div className="flex-1 overflow-hidden">
+              <BoardSidebar calledNumbers={state.calledNumbers} compact horizontal />
             </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <NumberCaller calledNumbers={state.calledNumbers} />
+            <div className="w-[35%] shrink-0 flex flex-col justify-center">
+              <NumberCaller calledNumbers={state.calledNumbers} compact />
             </div>
           </div>
           {/* Bottom: 3 cards side by side */}
           {state.playerMode === 'spectator' ? (
             <SpectatorCard />
           ) : (
-            <div className="flex flex-1 gap-1 overflow-hidden min-h-0">
+            <div className="flex flex-1 gap-0.5 overflow-hidden min-h-0">
               {state.bingoCards.map(card => {
                 const isCardEliminated = state.eliminatedCardIds.has(card.id);
                 return (
@@ -146,7 +146,7 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
                       <button
                         onClick={() => handleClaim(card.id)}
                         disabled={daubedCount < 5}
-                        className="gradient-winner rounded px-1 py-0.5 text-[9px] font-black text-primary-foreground shadow transition-transform active:scale-95 disabled:opacity-40 disabled:scale-100 shrink-0"
+                        className="gradient-winner rounded px-1 py-0.5 text-[8px] font-black text-primary-foreground shadow transition-transform active:scale-95 disabled:opacity-40 disabled:scale-100 shrink-0"
                       >
                         🎯 #{card.id}
                       </button>
