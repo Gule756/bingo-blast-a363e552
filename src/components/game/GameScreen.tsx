@@ -69,15 +69,15 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
         </div>
       )}
 
-      {/* Two cards layout: sidebar + caller on top, two cards stacked below */}
+      {/* Two cards layout: horizontal board on top, two cards stacked below */}
       {cardCount === 2 && (
         <div className="flex flex-1 flex-col gap-0.5 overflow-hidden px-1 pb-1">
-          {/* Top section: sidebar + caller side by side — kept short */}
-          <div className="flex gap-1 shrink-0" style={{ height: '28%' }}>
-            <div className="w-[32%] shrink-0 overflow-hidden">
-              <BoardSidebar calledNumbers={state.calledNumbers} compact />
+          {/* Top section: horizontal board + compact caller */}
+          <div className="flex gap-1 shrink-0" style={{ height: '22%' }}>
+            <div className="flex-1 overflow-hidden">
+              <BoardSidebar calledNumbers={state.calledNumbers} compact horizontal />
             </div>
-            <div className="flex-1 flex flex-col justify-center">
+            <div className="w-[30%] shrink-0 flex flex-col justify-center">
               <NumberCaller calledNumbers={state.calledNumbers} compact />
             </div>
           </div>
@@ -95,7 +95,7 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
                       daubedNumbers={state.daubedNumbers}
                       isEliminated={isCardEliminated}
                       onDaub={onDaub}
-                      compact
+                      extraCompact
                     />
                     {!isCardEliminated && !allEliminated && (
                       <button
@@ -118,11 +118,11 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
       {cardCount === 3 && (
         <div className="flex flex-1 flex-col gap-0.5 overflow-hidden px-1 pb-1">
           {/* Top section: wide horizontal board + compact caller */}
-          <div className="flex gap-1 shrink-0" style={{ height: '32%' }}>
+          <div className="flex gap-1 shrink-0" style={{ height: '28%' }}>
             <div className="flex-1 overflow-hidden">
               <BoardSidebar calledNumbers={state.calledNumbers} compact horizontal />
             </div>
-            <div className="w-[35%] shrink-0 flex flex-col justify-center">
+            <div className="w-[30%] shrink-0 flex flex-col justify-center">
               <NumberCaller calledNumbers={state.calledNumbers} compact />
             </div>
           </div>
@@ -140,7 +140,7 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
                       daubedNumbers={state.daubedNumbers}
                       isEliminated={isCardEliminated}
                       onDaub={onDaub}
-                      compact
+                      extraCompact
                     />
                     {!isCardEliminated && !allEliminated && (
                       <button
