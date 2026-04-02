@@ -118,11 +118,11 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
       {cardCount === 3 && (
         <div className="flex flex-1 flex-col gap-0.5 overflow-hidden px-1 pb-1">
           {/* Top section: wide horizontal board + compact caller */}
-          <div className="flex gap-1 shrink-0" style={{ height: '32%' }}>
+          <div className="flex gap-1 shrink-0" style={{ height: '28%' }}>
             <div className="flex-1 overflow-hidden">
               <BoardSidebar calledNumbers={state.calledNumbers} compact horizontal />
             </div>
-            <div className="w-[35%] shrink-0 flex flex-col justify-center">
+            <div className="w-[30%] shrink-0 flex flex-col justify-center">
               <NumberCaller calledNumbers={state.calledNumbers} compact />
             </div>
           </div>
@@ -140,7 +140,7 @@ export function GameScreen({ state, daubedCount, onDaub, onClaim, onClose }: Gam
                       daubedNumbers={state.daubedNumbers}
                       isEliminated={isCardEliminated}
                       onDaub={onDaub}
-                      compact
+                      extraCompact
                     />
                     {!isCardEliminated && !allEliminated && (
                       <button
