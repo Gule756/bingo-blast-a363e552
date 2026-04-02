@@ -7,11 +7,13 @@ interface BingoBoardProps {
   isEliminated: boolean;
   onDaub: (num: number) => void;
   compact?: boolean;
+  extraCompact?: boolean;
 }
 
-export function BingoBoard({ card, daubedNumbers, isEliminated, onDaub, compact }: BingoBoardProps) {
-  const cellSize = compact ? 'h-8 text-[10px]' : 'h-12 text-sm';
-  const headerSize = compact ? 'h-6 text-[10px]' : 'h-9 text-sm';
+export function BingoBoard({ card, daubedNumbers, isEliminated, onDaub, compact, extraCompact }: BingoBoardProps) {
+  const cellSize = extraCompact ? 'h-6 text-[9px]' : compact ? 'h-8 text-[10px]' : 'h-12 text-sm';
+  const headerSize = extraCompact ? 'h-5 text-[9px]' : compact ? 'h-6 text-[10px]' : 'h-9 text-sm';
+  const isSmall = compact || extraCompact;
 
   return (
     <div className={`rounded-xl bg-card ${compact ? 'p-1.5' : 'p-3'} relative ${isEliminated ? 'eliminated-board' : ''}`}>
