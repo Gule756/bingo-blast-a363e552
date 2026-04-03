@@ -25,60 +25,59 @@ export function BingoBoard({
   return (
     <div className={`
       relative rounded-xl bg-card flex flex-col 
-      /* FIX: Changed w-60 to w-full and h-80 to h-full + min-h-0 */
       w-full h-full min-h-0 
-      ${isSmall ? 'p-1' : 'p-3'} 
-      ${isEliminated ? 'eliminated-board' : ''} 
+      ${isSmall ? 'p-1' : 'p-2 md:p-3'} 
+      ${isEliminated ? 'opacity-40' : ''} 
       ${className || ''}
     `}>
       
       {/* Elimination Overlay */}
       {isEliminated && (
-        <div className="absolute inset-0 rounded-xl bg-destructive/30 backdrop-blur-[2px] z-10 flex items-center justify-center">
-          <span className={`${isSmall ? 'text-[10px]' : 'text-lg'} font-black text-destructive-foreground drop-shadow-lg uppercase`}>
-            ❌ ELIMINATED
+        <div className="absolute inset-0 rounded-xl bg-black/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+          <span className={`${isSmall ? 'text-[10px]' : 'text-lg'} font-black text-white border-2 border-white px-2 -rotate-12 uppercase`}>
+            OUT
           </span>
         </div>
       )}
 
       {/* Board Header */}
       {!extraCompact && (
-        <div className={`${isSmall ? 'mb-0.5 text-[8px]' : 'mb-1 text-xs'} text-center text-muted-foreground shrink-0 uppercase`}>
-          Board #{card.id}
+        <div className={`${isSmall ? 'mb-0.5 text-[8px]' : 'mb-1 text-[10px]'} text-center text-muted-foreground shrink-0 uppercase font-bold opacity-60`}>
+          #{card.id}
         </div>
       )}
 
       <div className="flex flex-col flex-1 gap-0.5 min-h-0">
-        {/* Bingo Letters Row (B-I-N-G-O) */}
-        <div className={`grid grid-cols-5 gap-0.5 shrink-0 ${isSmall ? 'h-6' : 'h-8'}`}>
+        {/* Bingo Letters Row */}
+        <div className={`grid grid-cols-5 gap-0.5 shrink-0 ${isSmall ? 'h-5' : 'h-7'}`}>
           {BINGO_LETTERS.map(l => (
             <div 
               key={l} 
-              className={`${getLetterColor(l)} flex items-center justify-center rounded-md font-bold ${isSmall ? 'text-[10px]' : 'text-sm'} h-full`}
+              className={`${getLetterColor(l)} flex items-center justify-center rounded-sm font-black ${isSmall ? 'text-[9px]' : 'text-xs'} h-full text-white shadow-sm`}
             >
               {l}
             </div>
           ))}
         </div>
 
-        {/* 5x5 Grid Numbers */}
-        <div className="grid grid-cols-5 grid-rows-5 gap-0.5 flex-1 min-h-0">
+        {/* 5x5 Grid Numbers 
+            FORCED: text-[10px] and min-h-0 allows the grid to shrink inside the 50% zone
+        */}
+        <div className="grid grid-cols-5 grid-rows-5 gap-0.5 flex-1 min-h-0 bg-white/5 p-0.5 rounded-sm">
           {card.numbers.flatMap((row, r) =>
             row.map((num, c) => {
               const isFree = r === 2 && c === 2;
               const isDaubed = isFree || (num !== null && daubedNumbers.has(num));
-              const cellClass = isDaubed ? 'cell-daubed' : 'cell-default';
-
+              
               return (
                 <motion.button
                   key={`${r}-${c}`}
-                  whileTap={!isEliminated && !isFree ? { scale: 0.9 } : {}}
+                  whileTap={!isEliminated && !isFree ? { scale: 0.92 } : {}}
                   onClick={() => num !== null && !isFree && !isEliminated && onDaub(num)}
-                  /* text-[2.5vw] ensures text shrinks on small screens, md:text-base caps it for desktop */
                   className={`
-                    ${cellClass} flex items-center justify-center rounded-sm md:rounded-lg 
-                    font-semibold transition-colors h-full w-full 
-                    ${isSmall ? 'text-[9px]' : 'text-[10px] sm:text-sm md:text-base'}
+                    flex items-center justify-center rounded-sm transition-all h-full w-full font-bold
+                    text-[10px] sm:text-xs md:text-base
+                    ${isDaubed ? 'bg-green-600 text-white shadow-inner' : 'bg-slate-800/60 text-white/90 hover:bg-slate-700'}
                   `}
                 >
                   {isFree ? '★' : num}
