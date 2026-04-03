@@ -8,28 +8,52 @@ import { playerNameSchema, txHashSchema, numberSchema, RateLimiter } from '@/lib
 import { useTabSync } from './useTabSync';
 import { supabase } from '@/integrations/supabase/client';
 
-function generateBingoCard(stackId: number): BingoCard {
-  const ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
-  const numbers: (number|null)[][] = [];
-  for (let col = 0; col < 5; col++) {
-    const [min, max] = ranges[col];
-    const pool = Array.from({length: max-min+1}, (_,i) => i+min);
-    const picked: (number|null)[] = [];
+// Fisher-Yates shuffle utility
+function fisherYatesShuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Column-restricted card generation with Fisher-Yates per column
+function generateBingoCard(stackId: number, existingCards: BingoCard[] = []): BingoCard {
+  const ranges: [number, number][] = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+  let grid: (number|null)[][];
+  let attempts = 0;
+
+  do {
+    const columns: number[][] = ranges.map(([min, max]) => {
+      const pool = Array.from({length: max - min + 1}, (_, i) => i + min);
+      return fisherYatesShuffle(pool).slice(0, 5);
+    });
+    grid = [];
     for (let r = 0; r < 5; r++) {
-      const idx = Math.floor(Math.random() * pool.length);
-      picked.push(pool.splice(idx, 1)[0]);
+      const row: (number|null)[] = [];
+      for (let c = 0; c < 5; c++) {
+        row.push(r === 2 && c === 2 ? null : columns[c][r]);
+      }
+      grid.push(row);
     }
-    numbers.push(picked);
-  }
-  const grid: (number|null)[][] = [];
-  for (let r = 0; r < 5; r++) {
-    const row: (number|null)[] = [];
-    for (let c = 0; c < 5; c++) {
-      row.push(r === 2 && c === 2 ? null : numbers[c][r]);
-    }
-    grid.push(row);
-  }
+    attempts++;
+  } while (attempts < 10 && existingCards.some(ec => cardFingerprint(ec) === gridFingerprint(grid)));
+
   return { id: stackId, numbers: grid };
+}
+
+// Fingerprint for duplicate detection
+function gridFingerprint(grid: (number|null)[][]): string {
+  return grid.flat().filter(n => n !== null).join(',');
+}
+function cardFingerprint(card: BingoCard): string {
+  return gridFingerprint(card.numbers);
+}
+
+// Pre-shuffle all 75 numbers for fair calling (Fisher-Yates)
+function generateCallSequence(): number[] {
+  return fisherYatesShuffle(Array.from({length: 75}, (_, i) => i + 1));
 }
 
 const LOBBY_TIME = 30;
