@@ -440,6 +440,21 @@ export function useGameState() {
     if (isDaubed(0,0) && isDaubed(0,4) && isDaubed(4,0) && isDaubed(4,4)) {
       return { pattern: 'Four Corners', cells: [[0,0],[0,4],[4,0],[4,4]] };
     }
+    // Postage Stamp (2x2 in any corner)
+    const corners: [number, number][] = [[0,0],[0,3],[3,0],[3,3]];
+    for (const [sr, sc] of corners) {
+      if (isDaubed(sr,sc) && isDaubed(sr,sc+1) && isDaubed(sr+1,sc) && isDaubed(sr+1,sc+1)) {
+        return { pattern: 'Postage Stamp' as WinPattern, cells: [[sr,sc],[sr,sc+1],[sr+1,sc],[sr+1,sc+1]] };
+      }
+    }
+    // Outside Frame (all edge cells)
+    const frameCells: [number, number][] = [];
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+      if (r === 0 || r === 4 || c === 0 || c === 4) frameCells.push([r, c]);
+    }
+    if (frameCells.every(([r, c]) => isDaubed(r, c))) {
+      return { pattern: 'Outside Frame' as WinPattern, cells: frameCells };
+    }
     return { pattern: null, cells: [] };
   }, [state]);
 
@@ -451,10 +466,11 @@ export function useGameState() {
     if (result.pattern) {
       clearInterval(callRef.current);
       hapticNotification('success');
-      // Prize pool = total cards in game * bet * 0.9 (10% house fee)
-      // At minimum, player's own cards contribute to the pot
-      const totalCardsInGame = Math.max(state.stats.players, 1) * state.bingoCards.length;
-      const prize = state.stats.bet * totalCardsInGame * 0.9;
+      // Prize pool: each player pays bet * their_card_count. Total = sum of all entries * 0.9
+      // We know: this player's cards + (other players * 1 card assumed average)
+      const otherPlayers = Math.max(state.stats.players - 1, 0);
+      const totalEntryFees = (state.bingoCards.length * state.stats.bet) + (otherPlayers * state.stats.bet);
+      const prize = totalEntryFees * 0.9;
       setState(s => ({
         ...s,
         phase: 'gameover',
