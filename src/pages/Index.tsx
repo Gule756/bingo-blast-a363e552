@@ -2,6 +2,7 @@ import { GameProvider, useGame } from '@/context/GameContext';
 import { WelcomeScreen } from '@/components/game/WelcomeScreen';
 import { StakeSelectionScreen } from '@/components/game/StakeSelectionScreen';
 import { DepositScreen } from '@/components/game/DepositScreen';
+import { WithdrawalScreen } from '@/components/game/WithdrawalScreen';
 import { LobbyScreen } from '@/components/game/LobbyScreen';
 import { WarningOverlay } from '@/components/game/WarningOverlay';
 import { GameScreen } from '@/components/game/GameScreen';
@@ -14,8 +15,8 @@ function GameRouter() {
   const {
     state, mergedOccupied, canAffordBet, daubedCount,
     authenticate, selectStake, createGame, joinGame,
-    submitDeposit, resetDeposit,
     selectStack, daubNumber, claimBingo, returnToLobby, setPhase,
+    updateBalance,
   } = useGame();
 
   const handleStackSelect = (id: number) => {
@@ -57,6 +58,8 @@ function GameRouter() {
           user={state.user}
           onBack={() => setPhase('stakeSelect')}
           onDeposit={() => setPhase('deposit')}
+          onWithdraw={() => setPhase('withdraw')}
+          onBalanceUpdate={updateBalance}
         />
       );
 
@@ -64,9 +67,18 @@ function GameRouter() {
       return (
         <DepositScreen
           balance={state.user.balance}
-          status={state.depositStatus}
-          onSubmit={submitDeposit}
-          onReset={resetDeposit}
+          userId={state.user.id}
+          onBalanceUpdate={updateBalance}
+          onBack={() => setPhase('stakeSelect')}
+        />
+      );
+
+    case 'withdraw':
+      return (
+        <WithdrawalScreen
+          balance={state.user.balance}
+          userId={state.user.id}
+          onBalanceUpdate={updateBalance}
           onBack={() => setPhase('stakeSelect')}
         />
       );
@@ -119,12 +131,6 @@ function GameRouter() {
         />
       );
   }
-}
-
-function ordinal(n: number): string {
-  if (n === 2) return '2nd';
-  if (n === 3) return '3rd';
-  return `${n}th`;
 }
 
 export default function Index() {

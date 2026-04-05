@@ -1,4 +1,4 @@
-export type GamePhase = 'welcome' | 'stakeSelect' | 'deposit' | 'lobby' | 'warning' | 'game' | 'gameover' | 'profile';
+export type GamePhase = 'welcome' | 'stakeSelect' | 'deposit' | 'withdraw' | 'lobby' | 'warning' | 'game' | 'gameover' | 'profile';
 export type PlayerMode = 'player' | 'spectator' | 'eliminated';
 export type WinPattern = 'Row' | 'Column' | 'Diagonal' | 'Four Corners' | 'Postage Stamp' | 'Outside Frame' | 'Full House' | null;
 

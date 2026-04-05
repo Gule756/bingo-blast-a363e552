@@ -529,6 +529,10 @@ export function useGameState() {
     });
   }, [totalPlayers]);
 
+  const updateBalance = useCallback((newBalance: number) => {
+    setState(s => ({ ...s, user: { ...s.user, balance: newBalance } }));
+  }, []);
+
   return {
     state,
     mergedOccupied,
@@ -546,5 +550,6 @@ export function useGameState() {
     claimBingo,
     returnToLobby,
     setPhase,
+    updateBalance,
   };
 }
