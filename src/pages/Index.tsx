@@ -16,7 +16,7 @@ function GameRouter() {
     state, mergedOccupied, canAffordBet, daubedCount,
     authenticate, selectStake, createGame, joinGame,
     selectStack, daubNumber, claimBingo, returnToLobby, setPhase,
-    updateBalance,
+    updateBalance, logout,
   } = useGame();
 
   const handleStackSelect = (id: number) => {
