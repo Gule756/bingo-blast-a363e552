@@ -533,6 +533,35 @@ export function useGameState() {
     setState(s => ({ ...s, user: { ...s.user, balance: newBalance } }));
   }, []);
 
+  const logout = useCallback(() => {
+    clearInterval(timerRef.current);
+    clearInterval(callRef.current);
+    setState({
+      phase: 'welcome',
+      timer: LOBBY_TIME,
+      playerMode: 'spectator',
+      selectedStacks: new Set<number>(),
+      occupiedStacks: new Set<number>(),
+      bingoCards: [],
+      calledNumbers: [],
+      daubedNumbers: new Set([0]),
+      isEliminated: false,
+      eliminatedCardIds: new Set<number>(),
+      winner: null,
+      winnerCount: 1,
+      winPattern: null,
+      winningCells: [],
+      winningCardId: null,
+      user: { ...DEFAULT_USER },
+      stats: { players: 1, bet: 10, callCount: 0 },
+      dummyWinRound: false,
+      depositTxHash: '',
+      depositStatus: 'idle',
+      currentGameRoom: null,
+      selectedStake: 10,
+    });
+  }, []);
+
   return {
     state,
     mergedOccupied,
@@ -551,5 +580,6 @@ export function useGameState() {
     returnToLobby,
     setPhase,
     updateBalance,
+    logout,
   };
 }

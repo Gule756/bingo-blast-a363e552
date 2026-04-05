@@ -13,10 +13,11 @@ interface StakeSelectionScreenProps {
   onJoinGame: (gameId: string, stake: number) => void;
   onDeposit: () => void;
   onProfile: () => void;
+  onLogout: () => void;
 }
 
 export function StakeSelectionScreen({
-  balance, userName, onSelectStake, onCreateGame, onJoinGame, onDeposit, onProfile
+  balance, userName, onSelectStake, onCreateGame, onJoinGame, onDeposit, onProfile, onLogout
 }: StakeSelectionScreenProps) {
   const [availableGames, setAvailableGames] = useState<GameRoom[]>([]);
   const [selectedStake, setSelectedStake] = useState<number | null>(null);
@@ -116,6 +117,9 @@ export function StakeSelectionScreen({
           </div>
           <button onClick={onProfile} className="rounded-lg bg-secondary p-2">
             <User className="h-4 w-4 text-foreground" />
+          </button>
+          <button onClick={onLogout} className="rounded-lg bg-destructive/10 p-2" title="Logout">
+            <LogOut className="h-4 w-4 text-destructive" />
           </button>
         </div>
       </div>
