@@ -66,7 +66,7 @@ const DEFAULT_USER = {
   telegramId: '',
   name: '',
   phone: '',
-  balance: 74,
+  balance: 1000,
   totalWins: 0,
 };
 
