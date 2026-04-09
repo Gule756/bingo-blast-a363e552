@@ -115,7 +115,7 @@ export function useGameState() {
     setState(s => ({ ...s, phase }));
   }, []);
 
-  const authenticate = useCallback(async (rawName: string, rawPhone: string) => {
+  const authenticate = useCallback(async (rawName: string, rawPhone: string, playerId?: string, balance?: number, totalWins?: number) => {
     const result = playerNameSchema.safeParse(rawName);
     if (!result.success) {
       hapticNotification('error');
@@ -123,15 +123,39 @@ export function useGameState() {
     }
     const name = result.data;
     const phone = rawPhone.replace(/[^+0-9]/g, '').slice(0, 15);
-    const telegramId = 'tg_' + Date.now();
 
-    let playerId = '';
+    // If playerId is provided (from Telegram auth), use it directly
+    if (playerId) {
+      hapticNotification('success');
+      setState(s => ({
+        ...s,
+        phase: 'stakeSelect',
+        user: {
+          ...s.user,
+          id: playerId,
+          telegramId: `tg_${playerId}`,
+          name,
+          phone,
+          balance: balance ?? s.user.balance,
+          totalWins: totalWins ?? s.user.totalWins,
+        },
+      }));
+      return;
+    }
+
+    // Browser fallback: create player via Supabase directly
+    const telegramId = 'tg_' + Date.now();
+    let finalPlayerId = '';
     try {
       const { data } = await supabase.from('players').upsert(
         { telegram_id: telegramId, name, phone },
         { onConflict: 'telegram_id' }
-      ).select('id').single();
-      if (data) playerId = data.id;
+      ).select('id, balance, total_wins').single();
+      if (data) {
+        finalPlayerId = data.id;
+        balance = data.balance;
+        totalWins = data.total_wins;
+      }
     } catch (e) {
       console.error('Failed to save player contact:', e);
     }
@@ -140,7 +164,15 @@ export function useGameState() {
     setState(s => ({
       ...s,
       phase: 'stakeSelect',
-      user: { ...s.user, id: playerId, telegramId, name, phone },
+      user: {
+        ...s.user,
+        id: finalPlayerId,
+        telegramId,
+        name,
+        phone,
+        balance: balance ?? s.user.balance,
+        totalWins: totalWins ?? s.user.totalWins,
+      },
     }));
   }, []);
 

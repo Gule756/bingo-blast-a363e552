@@ -168,27 +168,33 @@ export type Database = {
           balance: number
           created_at: string
           id: string
+          is_verified: boolean
           name: string
           phone: string | null
           telegram_id: string
+          telegram_user_id: number | null
           total_wins: number
         }
         Insert: {
           balance?: number
           created_at?: string
           id?: string
+          is_verified?: boolean
           name: string
           phone?: string | null
           telegram_id: string
+          telegram_user_id?: number | null
           total_wins?: number
         }
         Update: {
           balance?: number
           created_at?: string
           id?: string
+          is_verified?: boolean
           name?: string
           phone?: string | null
           telegram_id?: string
+          telegram_user_id?: number | null
           total_wins?: number
         }
         Relationships: []
