@@ -37,7 +37,7 @@ function GameRouter() {
 
   switch (state.phase) {
     case 'welcome':
-      return <WelcomeScreen onAuthenticate={(name, phone) => authenticate(name, phone)} />;
+      return <WelcomeScreen onAuthenticate={(name, phone, playerId, balance, totalWins) => authenticate(name, phone, playerId, balance, totalWins)} />;
 
     case 'stakeSelect':
       return (
