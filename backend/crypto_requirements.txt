@@ -1,0 +1,5 @@
+# Crypto Bot Requirements
+aiogram==3.4.1
+python-dotenv==1.0.0
+uuid
+sqlite3

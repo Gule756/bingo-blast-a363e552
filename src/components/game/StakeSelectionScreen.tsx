@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { hapticImpact } from '@/lib/haptic';
+import { executeBotCommand } from '@/lib/telegram';
 import { STAKE_OPTIONS, GameRoom } from '@/types/game';
 import { supabase } from '@/integrations/supabase/client';
-import { hapticImpact, hapticSelection } from '@/lib/haptic';
+import { hapticSelection } from '@/lib/haptic';
 import { User, LogOut } from 'lucide-react';
 
 interface StakeSelectionScreenProps {
@@ -102,6 +107,11 @@ export function StakeSelectionScreen({
     setSelectedStake(stake === selectedStake ? null : stake);
   };
 
+  const handleBalanceCheck = () => {
+    hapticImpact('light');
+    executeBotCommand('balance');
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
@@ -111,11 +121,11 @@ export function StakeSelectionScreen({
           <p className="text-xs text-muted-foreground">Welcome, {userName}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-secondary px-3 py-1.5 text-center">
-            <span className="text-[10px] text-muted-foreground">Balance</span>
+          <button onClick={handleBalanceCheck} className="rounded-lg bg-secondary px-3 py-1.5 text-center" title="Check Balance">
+            <span className="text-[10px] text-muted-foreground">💰</span>
             <p className="text-sm font-bold text-accent">{balance} ETB</p>
-          </div>
-          <button onClick={onProfile} className="rounded-lg bg-secondary p-2">
+          </button>
+          <button onClick={onProfile} className="rounded-lg bg-secondary p-2" title="Profile">
             <User className="h-4 w-4 text-foreground" />
           </button>
           <button onClick={onLogout} className="rounded-lg bg-destructive/10 p-2" title="Logout">

@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { hapticImpact } from '@/lib/haptic';
-import { isTelegramMiniApp, getTelegramInitData, getTelegramUser, requestTelegramContact, expandTelegramApp } from '@/lib/telegram';
+import { 
+  isTelegramMiniApp, 
+  getTelegramInitData, 
+  getTelegramUser, 
+  requestTelegramContact, 
+  expandTelegramApp,
+  getMiniAppAction,
+  getCurrentAction,
+  navigateToAction,
+  executeBotCommand
+} from '@/lib/telegram';
 import { supabase } from '@/integrations/supabase/client';
 
 interface WelcomeScreenProps {
@@ -13,17 +23,30 @@ type Step = 'loading' | 'intro' | 'contact' | 'verifying' | 'done' | 'error';
 export function WelcomeScreen({ onAuthenticate }: WelcomeScreenProps) {
   const [step, setStep] = useState<Step>('loading');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [isTelegram, setIsTelegram] = useState(false);
+  const [botAction, setBotAction] = useState<{ action: string; params: Record<string, string> } | null>(null);
 
-  // Auto-detect Telegram Mini App on mount
+  // Auto-detect Telegram Mini App on mount and handle deep linking
   useEffect(() => {
     const inTelegram = isTelegramMiniApp();
     setIsTelegram(inTelegram);
 
     if (inTelegram) {
       expandTelegramApp();
+      
+      // Check for bot command actions
+      const currentAction = getCurrentAction();
+      const miniAppAction = getMiniAppAction();
+      
+      // Use URL action first, then fall back to start_param
+      const action = currentAction.action !== 'welcome' ? currentAction : miniAppAction;
+      
+      if (action.action !== 'welcome') {
+        setBotAction(action);
+        console.log('Bot action detected:', action);
+      }
+      
       autoAuthViaTelegram();
     } else {
       setStep('intro');
@@ -118,6 +141,11 @@ export function WelcomeScreen({ onAuthenticate }: WelcomeScreenProps) {
       setStep('done');
       setTimeout(() => {
         onAuthenticate(player.name, player.phone || '', player.id, player.balance, player.totalWins);
+        
+        // Handle bot action after authentication
+        if (botAction) {
+          handleBotActionAfterAuth(botAction);
+        }
       }, 800);
     } catch (err) {
       console.error('Contact verification error:', err);
@@ -126,28 +154,60 @@ export function WelcomeScreen({ onAuthenticate }: WelcomeScreenProps) {
     }
   }
 
-  // Browser fallback: manual contact entry
-  function handleManualSubmit() {
-    const trimmedName = name.trim();
-    const trimmedPhone = phone.trim();
-
-    if (!trimmedName) {
-      setError('Please enter your name');
-      return;
+  // Handle bot actions after authentication completes
+  function handleBotActionAfterAuth(action: { action: string; params: Record<string, string> }) {
+    console.log('Processing bot action:', action);
+    
+    switch (action.action) {
+      case 'play':
+        // Navigate to play screen after a short delay
+        setTimeout(() => {
+          navigateToAction('play', action.params);
+        }, 1000);
+        break;
+        
+      case 'balance':
+        setTimeout(() => {
+          navigateToAction('balance', action.params);
+        }, 1000);
+        break;
+        
+      case 'deposit':
+        setTimeout(() => {
+          navigateToAction('deposit', action.params);
+        }, 1000);
+        break;
+        
+      case 'withdraw':
+        setTimeout(() => {
+          navigateToAction('withdraw', action.params);
+        }, 1000);
+        break;
+        
+      case 'transfer':
+        setTimeout(() => {
+          navigateToAction('transfer', action.params);
+        }, 1000);
+        break;
+        
+      case 'invite':
+        setTimeout(() => {
+          navigateToAction('invite', action.params);
+        }, 1000);
+        break;
+        
+      case 'instructions':
+        setTimeout(() => {
+          navigateToAction('instructions', action.params);
+        }, 1000);
+        break;
+        
+      default:
+        console.log('Unknown bot action:', action.action);
+        break;
     }
-    if (!trimmedPhone || !/^\+?[0-9]{9,15}$/.test(trimmedPhone)) {
-      setError('Please enter a valid phone number');
-      return;
-    }
-
-    setError('');
-    setStep('verifying');
-    setTimeout(() => {
-      setStep('done');
-      setTimeout(() => onAuthenticate(trimmedName, trimmedPhone), 800);
-    }, 1500);
   }
-
+  
   function handleShareContact() {
     hapticImpact('medium');
     if (isTelegram) {
@@ -213,47 +273,31 @@ export function WelcomeScreen({ onAuthenticate }: WelcomeScreenProps) {
                   onClick={handleTelegramContact}
                   className="gradient-hero w-full rounded-xl px-6 py-4 text-lg font-bold text-primary-foreground shadow-lg transition-transform active:scale-95"
                 >
-                  📱 Share Contact
+                  <span className="text-lg">{"\ud83d\udcf1"} Share Contact</span>
                 </button>
                 <p className="text-center text-xs text-muted-foreground">
                   Telegram will ask for permission to share your phone number
                 </p>
               </>
             ) : (
-              <>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-muted-foreground">Your Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="e.g. Tesfa"
-                    maxLength={30}
-                    className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-muted-foreground">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="e.g. +251912345678"
-                    maxLength={15}
-                    className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                  />
-                </div>
-                {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
-                <button
-                  onClick={handleManualSubmit}
-                  className="gradient-hero w-full rounded-xl px-6 py-4 text-lg font-bold text-primary-foreground shadow-lg transition-transform active:scale-95"
-                >
-                  🎯 Verify & Enter
-                </button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Your contact is stored securely to prevent abuse
+              <div className="text-center space-y-4">
+                <div className="text-4xl">{"\ud83d\udcf1"}</div>
+                <p className="text-sm font-semibold text-foreground">
+                  Telegram Required for Verification
                 </p>
-              </>
+                <p className="text-xs text-muted-foreground">
+                  This game uses Telegram's secure contact sharing for verification. 
+                  Please open this app in Telegram to continue.
+                </p>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground mb-2">How to play:</p>
+                  <ol className="text-xs text-muted-foreground space-y-1 text-left">
+                    <li>1. Find our bot in Telegram</li>
+                    <li>2. Start the game from the bot</li>
+                    <li>3. Share your contact to verify</li>
+                  </ol>
+                </div>
+              </div>
             )}
           </div>
         )}

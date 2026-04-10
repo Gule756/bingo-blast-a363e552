@@ -8,6 +8,7 @@ import { WarningOverlay } from '@/components/game/WarningOverlay';
 import { GameScreen } from '@/components/game/GameScreen';
 import { GameOverScreen } from '@/components/game/GameOverScreen';
 import { ProfileScreen } from '@/components/game/ProfileScreen';
+import { BotCommandHandler } from '@/components/game/BotCommandHandler';
 import { AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
@@ -137,7 +138,9 @@ function GameRouter() {
 export default function Index() {
   return (
     <GameProvider>
-      <GameRouter />
+      <BotCommandHandler>
+        <GameRouter />
+      </BotCommandHandler>
     </GameProvider>
   );
 }
