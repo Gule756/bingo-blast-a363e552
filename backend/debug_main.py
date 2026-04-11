@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Habesha Bingo 2.0 - Debug Version
+Habesha Bingo 2.0 - Debug Version with Web Server
 Includes heartbeat test and enhanced logging
+Works on Render Web Service with aiohttp
 """
 
 import asyncio
@@ -10,6 +11,7 @@ import os
 import sys
 from dotenv import load_dotenv
 import asyncpg
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
@@ -414,14 +416,52 @@ async def handle_callback(callback: types.CallbackQuery, state: FSMContext):
         logger.error(f"Error handling callback: {e}")
         await callback.answer("fire Error occurred. fire")
 
-async def main():
-    """Main function with enhanced error handling"""
+# Web Server Functions for Render
+async def health(request):
+    """Health check endpoint for Render"""
+    return web.Response(text="Bot is running!")
+
+async def status(request):
+    """Status endpoint with bot info"""
+    try:
+        bot_info = await bot.get_me()
+        status_text = f"Bot: @{bot_info.username}\nDatabase: {'Connected' if db_pool else 'Disconnected'}\nStatus: Running"
+        return web.Response(text=status_text)
+    except Exception as e:
+        return web.Response(text=f"Error: {str(e)}")
+
+async def start_web_server():
+    """Start aiohttp web server for Render"""
+    app = web.Application()
+    app.router.add_get("/", health)
+    app.router.add_get("/status", status)
+    
+    # Render provides PORT environment variable
+    port = int(os.environ.get("PORT", 10000))
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    
+    logger.info(f"Web server started on port {port}")
+    
+    # Keep web server running
+    try:
+        while True:
+            await asyncio.sleep(3600)  # Sleep for 1 hour
+    except asyncio.CancelledError:
+        logger.info("Web server stopped")
+        raise
+
+async def start_bot():
+    """Start the Telegram bot"""
     logger.info("Starting Habesha Bingo Bot (Debug Version)...")
     
     try:
         # Check configuration
         if not BOT_TOKEN:
-            logger.error("TELEGRAM_BOT_TOKEN is not set!")
+            logger.error("BOT_TOKEN is not set!")
             return
         
         if not DATABASE_URL:
@@ -440,13 +480,30 @@ async def main():
         await dp.start_polling(bot)
         
     except Exception as e:
-        logger.error(f"Fatal error in main: {e}")
+        logger.error(f"Fatal error in bot: {e}")
         logger.error(f"Error type: {type(e).__name__}")
         logger.error(f"Error details: {str(e)}")
     finally:
         # Close database pool
         await close_db_pool()
         logger.info("Bot shutdown complete")
+
+async def main():
+    """Main function - runs both web server and bot"""
+    logger.info("Starting Habesha Bingo Bot with Web Server...")
+    
+    try:
+        # Run both web server and bot concurrently
+        await asyncio.gather(
+            start_web_server(),
+            start_bot()
+        )
+    except KeyboardInterrupt:
+        logger.info("Stopped by user")
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error details: {str(e)}")
 
 if __name__ == "__main__":
     try:
