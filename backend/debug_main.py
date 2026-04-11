@@ -32,10 +32,10 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Configuration
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
-YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID", "0"))
-MINI_APP_URL = "https://bingo-blast-a363e552.vercel.app"
+YOUR_TELEGRAM_ID = int(os.getenv("GULE_TEST_ACCOUNT_ID", "0"))
+MINI_APP_URL = os.getenv("MINI_APP_URL", "https://bingo-blast-a363e552.vercel.app")
 
 # Enhanced logging for configuration
 logger.info(f"Bot Token: {BOT_TOKEN[:10]}..." if BOT_TOKEN else "BOT_TOKEN NOT SET")
@@ -421,7 +421,7 @@ async def main():
     try:
         # Check configuration
         if not BOT_TOKEN:
-            logger.error("BOT_TOKEN is not set!")
+            logger.error("TELEGRAM_BOT_TOKEN is not set!")
             return
         
         if not DATABASE_URL:
